@@ -1,0 +1,187 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing account details and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique Firebase Auth user ID." },
+        "displayName": { "type": "string", "description": "The visual display name of the user." },
+        "email": { "type": "string", "format": "email", "description": "The verified email of the user." },
+        "photoURL": { "type": "string", "description": "URL of the user's avatar image." },
+        "preferences": {
+          "type": "object",
+          "description": "User preferences and newsletter subscription state."
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Travel safari bookings submitted by customers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "The owner of this booking." },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string", "format": "email" },
+        "customerPhone": { "type": "string" },
+        "packageId": { "type": "string" },
+        "destinationId": { "type": "string" },
+        "isCustomTour": { "type": "boolean" },
+        "customItinerary": {
+          "type": "object",
+          "description": "Custom activity planning details."
+        },
+        "preferredStartDate": { "type": "string", "format": "date" },
+        "guestsCount": { "type": "integer" },
+        "totalPrice": { "type": "number" },
+        "specialRequests": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "dateBooked": { "type": "string", "format": "date" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "customerName", "customerEmail", "customerPhone", "isCustomTour", "preferredStartDate", "guestsCount", "totalPrice", "status", "dateBooked"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Reviews written by users for travel destinations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorLocation": { "type": "string" },
+        "rating": { "type": "integer" },
+        "text": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "avatarColor": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "destinationId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "authorName", "authorLocation", "rating", "text", "date", "avatarColor", "verified", "destinationId"]
+    },
+    "MediaAsset": {
+      "title": "MediaAsset",
+      "description": "Uploaded media asset record stored in Firestore.",
+      "type": "object",
+      "properties": {
+        "image_id": { "type": "string", "description": "Unique identifier for the image asset." },
+        "file_name": { "type": "string", "description": "The original name of the uploaded file." },
+        "storage_path": { "type": "string", "description": "The internal path location inside Firebase Storage." },
+        "public_download_url": { "type": "string", "description": "The raw, unedited token URL from Firebase Storage to be used in frontend UI components." },
+        "category": { "type": "string", "enum": ["Tour Package", "Marketing", "Review Accent", "Background Asset"] },
+        "dimensions": {
+          "type": "object",
+          "description": "Image resolution dimensions."
+        },
+        "uploaded_at": { "type": "string", "description": "The ISO timestamp marking exactly when the media asset was committed to storage." }
+      },
+      "required": ["image_id", "file_name", "storage_path", "public_download_url", "category", "uploaded_at"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "Premium safari club members and eligibility tier applications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "The subscriber's unique Firebase Auth user ID." },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "nationality": { "type": "string" },
+        "membershipTier": { "type": "string", "enum": ["savannah_elite", "kafue_prestige", "luangwa_imperial"] },
+        "plannedSafaris": { "type": "integer" },
+        "specialInterests": { "type": "array" },
+        "dietaryPreferences": { "type": "string" },
+        "dreamSafari": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "fullName", "email", "phone", "nationality", "membershipTier", "plannedSafaris", "specialInterests", "status", "createdAt", "updatedAt"]
+    },
+    "MusicTourRegistration": {
+      "title": "MusicTourRegistration",
+      "description": "Registration details for the Zambia Music Tour.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The full name of the registrant." },
+        "email": { "type": "string", "format": "email", "description": "The primary email address of the registrant." },
+        "phone": { "type": "string", "description": "The phone / WhatsApp number of the registrant." },
+        "tourCity": { "type": "string", "description": "The selected tour city or interest of the registrant." },
+        "message": { "type": "string", "description": "Any special questions or messages from the registrant." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "tourCity", "createdAt"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Customer inquiry tickets submitted through contact channels.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string", "format": "email" },
+        "customerPhone": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "replied": { "type": "boolean" },
+        "replyText": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerEmail", "message", "createdAt", "replied"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Premium customer registered directory profiles tracking analytics.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "totalBookings": { "type": "integer" },
+        "totalSpent": { "type": "number" }
+      },
+      "required": ["name", "email", "createdAt", "totalBookings", "totalSpent"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles store."
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Bookings submitted by users."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews of African destinations."
+    },
+    "/media_assets/{assetId}": {
+      "schema": "MediaAsset",
+      "description": "Registry of uploaded media and tour photography assets."
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Premium safari club members enrollment registry."
+    },
+    "/music_tour_registrations/{registrationId}": {
+      "schema": "MusicTourRegistration",
+      "description": "Registrations for the Zambia Music Tour experience."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "Customer inquiry tickets registry."
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Client statistics and directory database."
+    }
+  }
+}

@@ -1,0 +1,183 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default master gate: Deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() 
+        && (request.auth.token.email == 'luyandobanjilb@gmail.com' || request.auth.uid == 'xMTFp8hyX7SOYyHSdtww79j1bAD3');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Users Collection Rules ---
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) 
+        && isValidId(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().size() <= 8;
+    }
+
+    // --- Bookings Collection Rules ---
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && (resource == null || isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
+      allow create: if isSignedIn() 
+        && isValidId(bookingId)
+        && (request.resource.data.userId == request.auth.uid || isAdmin())
+        && request.resource.data.id == bookingId
+        && request.resource.data.customerName is string
+        && request.resource.data.customerEmail is string
+        && request.resource.data.customerPhone is string
+        && request.resource.data.preferredStartDate is string
+        && request.resource.data.guestsCount is int
+        && request.resource.data.totalPrice is number
+        && request.resource.data.status in ['pending', 'confirmed', 'cancelled']
+        && request.resource.data.keys().hasAll(['id', 'userId', 'customerName', 'customerEmail', 'customerPhone', 'isCustomTour', 'preferredStartDate', 'guestsCount', 'totalPrice', 'status', 'dateBooked']);
+
+      allow update: if isSignedIn() 
+        && (
+          // Action: Cancel Booking (only allow status changes for standard user)
+          (resource.data.userId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.id == bookingId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'cancelled'])
+          
+          // Or admin can update status or anything
+          || isAdmin()
+        );
+
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // --- Reviews Collection Rules ---
+    match /reviews/{reviewId} {
+      // Reviews are public, so allow read list/get
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && isValidId(reviewId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == reviewId
+        && request.resource.data.authorName is string
+        && request.resource.data.authorLocation is string
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.text is string
+        && request.resource.data.keys().hasAll(['id', 'userId', 'authorName', 'authorLocation', 'rating', 'text', 'date', 'avatarColor', 'verified', 'destinationId']);
+
+      // Reviews cannot be updated once published, but authors can delete them manually
+      allow update: if false;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // --- Media Assets Collection Rules ---
+    match /media_assets/{assetId} {
+      // Media assets represent public tour or marketing assets, so allow public reads
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && isValidId(assetId)
+        && request.resource.data.image_id == assetId
+        && request.resource.data.file_name is string && request.resource.data.file_name.size() <= 256
+        && request.resource.data.storage_path is string && request.resource.data.storage_path.size() <= 512
+        && request.resource.data.public_download_url is string && request.resource.data.public_download_url.size() <= 2048
+        && request.resource.data.category in ['Tour Package', 'Marketing', 'Review Accent', 'Background Asset']
+        && request.resource.data.uploaded_at is string
+        && request.resource.data.keys().hasAll(['image_id', 'file_name', 'storage_path', 'public_download_url', 'category', 'uploaded_at']);
+
+      // Prevent non-authorized updates or deletion from client SDK
+      allow update, delete: if false;
+    }
+
+    // --- Memberships Collection Rules ---
+    match /memberships/{membershipId} {
+      allow get: if isSignedIn() && (resource == null || isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && isValidId(membershipId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == membershipId
+        && request.resource.data.fullName is string && request.resource.data.fullName.size() <= 128
+        && request.resource.data.email is string && request.resource.data.email.size() <= 128
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 64
+        && request.resource.data.nationality is string && request.resource.data.nationality.size() <= 128
+        && request.resource.data.membershipTier in ['savannah_elite', 'kafue_prestige', 'luangwa_imperial']
+        && request.resource.data.plannedSafaris is int
+        && request.resource.data.specialInterests is list
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(['id', 'userId', 'fullName', 'email', 'phone', 'nationality', 'membershipTier', 'plannedSafaris', 'specialInterests', 'status', 'createdAt', 'updatedAt']);
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == membershipId
+        && (
+          // Allow modifying personal details/preferences but lock status from client updates
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'email', 'phone', 'nationality', 'membershipTier', 'plannedSafaris', 'specialInterests', 'dietaryPreferences', 'dreamSafari', 'updatedAt'])
+        );
+
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // --- Music Tour Registrations Rules ---
+    match /music_tour_registrations/{registrationId} {
+      allow create: if isValidId(registrationId)
+        && request.resource.data.name is string && request.resource.data.name.size() <= 128
+        && request.resource.data.email is string && request.resource.data.email.size() <= 128
+        && request.resource.data.tourCity in ['Lusaka', 'Livingstone', 'Kitwe', 'Ndola', 'All']
+        && request.resource.data.keys().hasAll(['name', 'email', 'tourCity', 'createdAt']);
+
+      allow read, update, delete: if false;
+    }
+
+    // --- Clients Collection Rules ---
+    match /clients/{clientId} {
+      allow read: if isOwner(clientId) || isAdmin();
+      allow create, update: if isOwner(clientId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- Inquiries Collection Rules ---
+    match /inquiries/{inquiryId} {
+      allow get, list: if isAdmin();
+      
+      allow create: if isValidId(inquiryId)
+        && request.resource.data.id == inquiryId
+        && request.resource.data.customerName is string && request.resource.data.customerName.size() <= 256
+        && request.resource.data.customerEmail is string && request.resource.data.customerEmail.size() <= 256
+        && request.resource.data.message is string && request.resource.data.message.size() <= 10000
+        && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 128
+        && request.resource.data.replied == false
+        && request.resource.data.keys().hasAll(['id', 'customerName', 'customerEmail', 'message', 'createdAt', 'replied'])
+        && request.resource.data.keys().size() <= 8;
+
+      allow update: if isAdmin()
+        && request.resource.data.id == inquiryId
+        && request.resource.data.keys().hasAll(['id', 'customerName', 'customerEmail', 'message', 'createdAt', 'replied'])
+        && request.resource.data.keys().size() <= 8;
+
+      allow delete: if isAdmin();
+    }
+  }
+}

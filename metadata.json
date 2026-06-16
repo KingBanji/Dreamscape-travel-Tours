@@ -1,0 +1,8 @@
+{
+  "name": " Dreamscape Travel Zambia",
+  "description": "Premium travel \u0026 safari operator in Zambia. Discover custom African wilderness itineraries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
