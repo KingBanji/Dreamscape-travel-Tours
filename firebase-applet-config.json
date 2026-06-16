@@ -1,10 +1,10 @@
 {
-  "projectId": "remixed-project-id",
-  "appId": "remixed-app-id",
-  "apiKey": "remixed-api-key",
-  "authDomain": "remixed-auth-domain",
-  "firestoreDatabaseId": "remixed-firestore-database-id",
-  "storageBucket": "remixed-storage-bucket",
-  "messagingSenderId": "remixed-messaging-sender-id",
-  "measurementId": "remixed-measurement-id"
+  "projectId": "zany-hull-pfbwx",
+  "appId": "1:187553560971:web:70f29f91d0a0afbed7178e",
+  "apiKey": "AIzaSyCjaTJ5a_b02kDNOT9tzzkxWD-cp9oLKuw",
+  "authDomain": "zany-hull-pfbwx.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-4532422b-ad7c-4cd0-9e01-59c2602a3c01",
+  "storageBucket": "zany-hull-pfbwx.firebasestorage.app",
+  "messagingSenderId": "187553560971",
+  "measurementId": ""
 }
