@@ -1,5 +1,12 @@
 import fs from "fs";
 import path from "path";
+import pkg from "pg";
+const { Pool, types } = pkg;
+
+// Custom PG numeric parser: Type OID 1700 is NUMERIC, parse as float
+types.setTypeParser(1700, function(val) {
+  return parseFloat(val);
+});
 
 const DATA_DIR = path.join(process.cwd(), "config", ".data");
 
@@ -171,8 +178,50 @@ if (!fs.existsSync(BOOKINGS_FILE) || readData(BOOKINGS_FILE, []).length === 0) {
   writeData(BOOKINGS_FILE, DEFAULT_BOOKINGS);
 }
 
+// Live Cloud SQL Connection Pool using Object Method from guides
+let sqlPool: pkg.Pool | null = null;
+if (process.env.SQL_HOST) {
+  sqlPool = new Pool({
+    host: process.env.SQL_HOST,
+    user: process.env.SQL_USER,
+    password: process.env.SQL_PASSWORD,
+    database: process.env.SQL_DB_NAME,
+    connectionTimeoutMillis: 15000,
+  });
+  sqlPool.on("error", (err) => {
+    console.error("Unexpected error on idle SQL pool client:", err);
+  });
+}
+
 // Main query interface matching user requirements
-export function query(sqlStatement: string, params: any[] = []): Promise<{ rows: any[] }> {
+export async function query(sqlStatement: string, params: any[] = []): Promise<{ rows: any[] }> {
+  // If Cloud SQL (PostgreSQL) is enabled and active, execute directly against postgres!
+  if (sqlPool) {
+    try {
+      // Small query replacement helper for PostgreSQL compatibility (if any query uses standard JS formatting)
+      const formattedSql = sqlStatement;
+      const res = await sqlPool.query(formattedSql, params);
+
+      // Map snake_case password_hash to passwordHash if requested or generic camelCase attributes for application compatibility
+      const mappedRows = res.rows.map((row: any) => {
+        const copy = { ...row };
+        if (copy.password_hash !== undefined) {
+          copy.passwordHash = copy.password_hash;
+        }
+        if (copy.mfa_enabled !== undefined) {
+          copy.mfaEnabled = copy.mfa_enabled;
+        }
+        return copy;
+      });
+
+      return { rows: mappedRows };
+    } catch (dbErr) {
+      console.error("Cloud SQL Execution Error on query:", sqlStatement, dbErr);
+      throw dbErr;
+    }
+  }
+
+  // Fallback back to local local storage mock engine
   return new Promise((resolve, reject) => {
     try {
       const sql = sqlStatement.trim();
@@ -195,7 +244,7 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
       }
 
       // 1. SELECT * FROM tours WHERE is_active = true with optional dynamic filters
-      if (sql.startsWith("SELECT * FROM tours WHERE is_active = true") || sql.startsWith("SELECT * FROM tours WHERE is_active = true")) {
+      if (sql.startsWith("SELECT * FROM tours WHERE is_active = true") || sql.startsWith("SELECT * FROM tours")) {
         let filtered = tours.filter((t: any) => t.is_active === true);
         
         const destMatch = sql.match(/destination\s+ILIKE\s+\$(\d+)/i);
@@ -227,7 +276,6 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
         }
         
         if (sql.includes("ORDER BY created_at DESC")) {
-          // Sort descending
           filtered.sort((a: any, b: any) => {
             const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
             const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -313,7 +361,7 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
             return { ...t, is_active: false, updated_at: new Date().toISOString() };
           }
           return t;
-        });
+          });
         writeData(TOURS_FILE, nextTours);
         resolve({ rows: [] });
         return;
@@ -465,7 +513,7 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
         return;
       }
 
-      // 12. INSERT INTO users (name, email, password, phone, role) VALUES ($1, $2, $3, $4, 'traveler') RETURNING id, name, email...
+      // 12. INSERT INTO users (name, email, password, phone, role) VALUES ($1...
       if (sql.includes("INSERT INTO users")) {
         const emailLower = String(params[1]).toLowerCase();
         const isPredefinedAdmin = emailLower === "luyandobanjilb@gmail.com";
@@ -476,7 +524,6 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
 
         if (sql.includes("password_hash")) {
           // INSERT INTO users (name, email, password_hash, role)
-          // params[2] contains the password hash, params[3] contains role
           passwordVal = params[2];
           roleVal = params[3] || (isPredefinedAdmin ? "admin" : "traveler");
         } else {
@@ -487,8 +534,8 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
           id: `u-${Date.now()}`,
           name: params[0],
           email: emailLower,
-          password: passwordVal, // raw or already hashed by bcrypt
-          password_hash: passwordVal, // support both password and password_hash
+          password: passwordVal,
+          password_hash: passwordVal,
           phone: phoneVal,
           role: roleVal,
           created_at: new Date().toISOString(),
@@ -497,7 +544,6 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
         users.push(newUser);
         writeData(USERS_FILE, users);
         
-        // Remove password/password_hash for returned object
         const { password, password_hash, ...returnedUser } = newUser;
         resolve({ rows: [returnedUser] });
         return;
@@ -526,7 +572,7 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
         return;
       }
 
-       // SELECT id, name, email, phone, role, created_at FROM users (and general users query)
+      // SELECT id, name, email, phone, role, created_at FROM users (and general users query)
       if (sql.includes("SELECT id, name, email, phone, role, created_at FROM users") || sql.includes("SELECT * FROM users")) {
         const list = users.map(({ password, password_hash, ...u }: any) => u);
         resolve({ rows: list });
@@ -575,7 +621,6 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
 
         if (updatedUser) {
           writeData(USERS_FILE, nextUsers);
-          // Remove password fields for standard security return
           const { password, password_hash, ...returnedUser } = updatedUser;
           resolve({ rows: [returnedUser] });
         } else {
@@ -593,7 +638,6 @@ export function query(sqlStatement: string, params: any[] = []): Promise<{ rows:
         return;
       }
 
-      // General default return to be safe
       resolve({ rows: [] });
     } catch (err) {
       reject(err);
