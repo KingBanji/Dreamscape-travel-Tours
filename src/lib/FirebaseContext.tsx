@@ -118,6 +118,40 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
+  const fetchCredentialsBookings = async (authTokenStr: string) => {
+    try {
+      const res = await fetch("/api/bookings/my", {
+        headers: { "Authorization": `Bearer ${authTokenStr}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.bookings) {
+          const mapped: Booking[] = data.bookings.map((b: any) => ({
+            id: String(b.id),
+            userId: String(b.user_id),
+            customerName: b.user_name || "Explorer",
+            customerEmail: b.email || "",
+            customerPhone: b.phone || "",
+            isCustomTour: false,
+            preferredStartDate: b.departure_date || b.created_at?.split("T")[0] || "",
+            guestsCount: b.seats || 1,
+            totalPrice: Number(b.total_price || 0),
+            specialRequests: b.notes || "",
+            paymentSimulated: true,
+            status: b.status || "confirmed",
+            dateBooked: b.created_at?.split("T")[0] || "",
+            tourName: b.tour_title || "Explorer Tour",
+            paymentMethod: "whatsapp"
+          }));
+          setBookings(mapped);
+          localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(mapped));
+        }
+      }
+    } catch (e) {
+      console.warn("Failed fetching credentials database bookings:", e);
+    }
+  };
+
   // 2. Auth state observer & Firestore Real-time Sync
   useEffect(() => {
     if (!isFirebaseEnabled || !auth || !db) {
@@ -179,74 +213,101 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const isAdminEmail = resolvedUser.email === "luyandobanjilb@gmail.com";
 
-        // Realtime sync user bookings from Firestore
-        const bookingsPath = "bookings";
-        const bookingsQuery = isAdminEmail
-          ? query(collection(db, bookingsPath))
-          : query(
-              collection(db, bookingsPath),
-              where("userId", "==", resolvedUser.uid)
-            );
-
-        activeUnsubscribeBookings = onSnapshot(
-          bookingsQuery,
-          (snapshot) => {
-            const list: Booking[] = [];
-            snapshot.forEach((docSnap) => {
-              list.push(docSnap.data() as Booking);
-            });
-            setBookings(list);
-            localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(list));
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, bookingsPath);
+        // If the user registered via Custom Email/Password (Express JWT)
+        if ((resolvedUser as any).isCredentialsUser) {
+          const uToken = (resolvedUser as any).token;
+          if (uToken) {
+            fetchCredentialsBookings(uToken);
           }
-        );
 
-        // Realtime sync reviews from Firestore (global public reviews)
-        const reviewsPath = "reviews";
-        const reviewsQuery = collection(db, reviewsPath);
+          // Realtime sync reviews from Firestore (global public reviews remain accessible to all)
+          const reviewsPath = "reviews";
+          const reviewsQuery = collection(db, reviewsPath);
 
-        activeUnsubscribeReviews = onSnapshot(
-          reviewsQuery,
-          (snapshot) => {
-            const list: Review[] = [];
-            snapshot.forEach((docSnap) => {
-              list.push(docSnap.data() as Review);
-            });
-            // Merge loaded reviews with default mock reviews to always look populated!
-            const merged = [...list, ...MOCK_REVIEWS.filter(r => !list.some(l => l.id === r.id))];
-            setReviews(merged);
-            localStorage.setItem(REVIEWS_LOCAL_KEY, JSON.stringify(merged));
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, reviewsPath);
-          }
-        );
+          activeUnsubscribeReviews = onSnapshot(
+            reviewsQuery,
+            (snapshot) => {
+              const list: Review[] = [];
+              snapshot.forEach((docSnap) => {
+                list.push(docSnap.data() as Review);
+              });
+              const merged = [...list, ...MOCK_REVIEWS.filter(r => !list.some(l => l.id === r.id))];
+              setReviews(merged);
+              localStorage.setItem(REVIEWS_LOCAL_KEY, JSON.stringify(merged));
+            },
+            (error) => {
+              handleFirestoreError(error, OperationType.GET, reviewsPath);
+            }
+          );
+        } else {
+          // Standard Firebase User (Google Auth, etc.) runs standard real-time queries
+          const bookingsPath = "bookings";
+          const bookingsQuery = isAdminEmail
+            ? query(collection(db, bookingsPath))
+            : query(
+                collection(db, bookingsPath),
+                where("userId", "==", resolvedUser.uid)
+              );
 
-        // Realtime sync memberships from Firestore
-        const membershipsPath = "memberships";
-        const membershipsQuery = isAdminEmail
-          ? query(collection(db, membershipsPath))
-          : query(
-              collection(db, membershipsPath),
-              where("userId", "==", resolvedUser.uid)
-            );
+          activeUnsubscribeBookings = onSnapshot(
+            bookingsQuery,
+            (snapshot) => {
+              const list: Booking[] = [];
+              snapshot.forEach((docSnap) => {
+                list.push(docSnap.data() as Booking);
+              });
+              setBookings(list);
+              localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(list));
+            },
+            (error) => {
+              handleFirestoreError(error, OperationType.GET, bookingsPath);
+            }
+          );
 
-        activeUnsubscribeMemberships = onSnapshot(
-          membershipsQuery,
-          (snapshot) => {
-            const list: Membership[] = [];
-            snapshot.forEach((docSnap) => {
-              list.push(docSnap.data() as Membership);
-            });
-            setMemberships(list);
-            localStorage.setItem(MEMBERSHIPS_LOCAL_KEY, JSON.stringify(list));
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, membershipsPath);
-          }
-        );
+          // Realtime sync reviews from Firestore (global public reviews)
+          const reviewsPath = "reviews";
+          const reviewsQuery = collection(db, reviewsPath);
+
+          activeUnsubscribeReviews = onSnapshot(
+            reviewsQuery,
+            (snapshot) => {
+              const list: Review[] = [];
+              snapshot.forEach((docSnap) => {
+                list.push(docSnap.data() as Review);
+              });
+              const merged = [...list, ...MOCK_REVIEWS.filter(r => !list.some(l => l.id === r.id))];
+              setReviews(merged);
+              localStorage.setItem(REVIEWS_LOCAL_KEY, JSON.stringify(merged));
+            },
+            (error) => {
+              handleFirestoreError(error, OperationType.GET, reviewsPath);
+            }
+          );
+
+          // Realtime sync memberships from Firestore
+          const membershipsPath = "memberships";
+          const membershipsQuery = isAdminEmail
+            ? query(collection(db, membershipsPath))
+            : query(
+                collection(db, membershipsPath),
+                where("userId", "==", resolvedUser.uid)
+              );
+
+          activeUnsubscribeMemberships = onSnapshot(
+            membershipsQuery,
+            (snapshot) => {
+              const list: Membership[] = [];
+              snapshot.forEach((docSnap) => {
+                list.push(docSnap.data() as Membership);
+              });
+              setMemberships(list);
+              localStorage.setItem(MEMBERSHIPS_LOCAL_KEY, JSON.stringify(list));
+            },
+            (error) => {
+              handleFirestoreError(error, OperationType.GET, membershipsPath);
+            }
+          );
+        }
       } else {
         // Fallback back to local storage files when logged out
         try {
@@ -369,15 +430,48 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     if (isFirebaseEnabled && db && user) {
-      const docPath = `bookings/${newId}`;
-      try {
-        await setDoc(doc(db, "bookings", newId), pruneUndefined({
-          ...newBooking,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }));
-      } catch (err) {
-        handleFirestoreError(err, OperationType.CREATE, docPath);
+      if ((user as any).isCredentialsUser) {
+        let tour_id = "1"; // Default to "1" (Shantumbu Falls)
+        if (bookingInput.tourName) {
+          const nameLower = bookingInput.tourName.toLowerCase();
+          if (nameLower.includes("kafue")) tour_id = "2";
+          else if (nameLower.includes("mosi") || nameLower.includes("victoria")) tour_id = "3";
+          else if (nameLower.includes("luangwa")) tour_id = "4";
+          else if (nameLower.includes("rivers") || nameLower.includes("expedition")) tour_id = "5";
+        }
+        try {
+          const res = await fetch("/api/bookings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${(user as any).token}`
+            },
+            body: JSON.stringify({
+              tour_id,
+              seats: bookingInput.guestsCount || 1,
+              notes: bookingInput.specialRequests || `Booked: ${bookingInput.tourName || "Safari Package"}`
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            await fetchCredentialsBookings((user as any).token);
+          } else {
+            console.warn("Failed posting booking directly:", data.message);
+          }
+        } catch (apiErr) {
+          console.error("API error posting booking:", apiErr);
+        }
+      } else {
+        const docPath = `bookings/${newId}`;
+        try {
+          await setDoc(doc(db, "bookings", newId), pruneUndefined({
+            ...newBooking,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, docPath);
+        }
       }
     } else {
       // Offline Local Storage Fallback
@@ -390,11 +484,26 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Cancel / Delete booking
   const cancelBooking = async (bookingId: string) => {
     if (isFirebaseEnabled && db && user) {
-      const docPath = `bookings/${bookingId}`;
-      try {
-        await deleteDoc(doc(db, "bookings", bookingId));
-      } catch (err) {
-        handleFirestoreError(err, OperationType.DELETE, docPath);
+      if ((user as any).isCredentialsUser) {
+        try {
+          const res = await fetch(`/api/bookings/${bookingId}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${(user as any).token}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+            await fetchCredentialsBookings((user as any).token);
+          }
+        } catch (apiErr) {
+          console.error("API delete booking error:", apiErr);
+        }
+      } else {
+        const docPath = `bookings/${bookingId}`;
+        try {
+          await deleteDoc(doc(db, "bookings", bookingId));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, docPath);
+        }
       }
     } else {
       // Offline fallback
@@ -407,14 +516,33 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Update Booking Status (for admin)
   const updateBookingStatus = async (bookingId: string, status: "pending" | "confirmed" | "cancelled") => {
     if (isFirebaseEnabled && db && user) {
-      const docPath = `bookings/${bookingId}`;
-      try {
-        await setDoc(doc(db, "bookings", bookingId), {
-          status,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, docPath);
+      if ((user as any).isCredentialsUser) {
+        try {
+          const res = await fetch(`/api/bookings/${bookingId}/status`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${(user as any).token}`
+            },
+            body: JSON.stringify({ status })
+          });
+          const data = await res.json();
+          if (data.success) {
+            await fetchCredentialsBookings((user as any).token);
+          }
+        } catch (apiErr) {
+          console.error("API patch status error:", apiErr);
+        }
+      } else {
+        const docPath = `bookings/${bookingId}`;
+        try {
+          await setDoc(doc(db, "bookings", bookingId), {
+            status,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, docPath);
+        }
       }
     } else {
       // Offline fallback

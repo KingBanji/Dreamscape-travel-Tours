@@ -266,7 +266,9 @@ export default function DestinationList({
                           </h3>
                         </div>
                         <div className="bg-brand-gold hover:bg-brand-gold-light active:scale-95 text-brand-dark font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 transition-all">
-                          {language === "fr" ? "Réserver" : "Book Now"}
+                          {dest.id === "kundalila-falls" 
+                            ? "Reserve" 
+                            : (language === "fr" ? "Réserver" : "Book Now")}
                         </div>
                       </div>
                     </div>

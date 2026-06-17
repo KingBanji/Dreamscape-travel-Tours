@@ -113,29 +113,104 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     }
   }, [user]);
 
-  // Load clients live from Firestore (with localstorage fallback)
+  // Load clients live from Firestore (with localstorage fallback) and merge with SQL clients
   useEffect(() => {
+    let unsub: () => void = () => {};
+    let sqlClients: any[] = [];
+    let firestoneClients: any[] = [];
+
+    const fetchSqlClients = async () => {
+      try {
+        const res = await fetch("/api/admin/clients");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.clients) {
+            sqlClients = data.clients;
+            mergeLists();
+          }
+        }
+      } catch (e) {
+        console.warn("Error fetching SQL clients:", e);
+      }
+    };
+
+    const mergeLists = () => {
+      const mergedMap = new Map<string, any>();
+      
+      // 1. Add SQL clients
+      sqlClients.forEach(c => {
+        if (c.email) {
+          mergedMap.set(c.email.toLowerCase(), {
+            ...c,
+            source: "standard"
+          });
+        }
+      });
+
+      // 2. Add/Overwrite with Firestore clients if they exist
+      firestoneClients.forEach(c => {
+        if (c.email) {
+          const emailKey = c.email.toLowerCase();
+          const existing = mergedMap.get(emailKey);
+          
+          let createdAtVal = c.createdAt;
+          if (createdAtVal && typeof createdAtVal === "object" && createdAtVal.seconds) {
+            createdAtVal = new Date(createdAtVal.seconds * 1000).toISOString();
+          } else if (!createdAtVal) {
+            createdAtVal = new Date().toISOString();
+          }
+
+          mergedMap.set(emailKey, {
+            uid: c.uid || c.id || existing?.uid || `fs-${Date.now()}`,
+            name: c.name || existing?.name || "Explorer",
+            email: c.email,
+            phone: c.phone || existing?.phone || "",
+            createdAt: createdAtVal,
+            totalBookings: c.totalBookings !== undefined ? c.totalBookings : (existing?.totalBookings || 0),
+            totalSpent: c.totalSpent !== undefined ? c.totalSpent : (existing?.totalSpent || 0),
+            billingSummary: c.billingSummary || existing?.billingSummary || {
+              totalInvoices: c.totalBookings || 0,
+              paid: c.totalBookings || 0,
+              outstanding: 0
+            },
+            source: "google"
+          });
+        }
+      });
+
+      const combined = Array.from(mergedMap.values());
+      // Sort combined list newest first
+      combined.sort((a, b) => {
+        const t1 = new Date(a.createdAt || 0).getTime();
+        const t2 = new Date(b.createdAt || 0).getTime();
+        return t2 - t1;
+      });
+
+      setClients(combined);
+      localStorage.setItem("dreamscape_clients", JSON.stringify(combined));
+    };
+
+    fetchSqlClients();
+
     if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
-      const unsub = onSnapshot(collection(db, "clients"), (snapshot) => {
+      unsub = onSnapshot(collection(db, "clients"), (snapshot) => {
         const list: any[] = [];
         snapshot.forEach((snap) => {
           list.push({ uid: snap.id, ...snap.data() });
         });
-        // Sort clients by creation or name
-        list.sort((a, b) => {
-          const t1 = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
-          const t2 = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
-          return t2 - t1;
-        });
-        setClients(list);
+        firestoneClients = list;
+        mergeLists();
       }, (error) => {
-        handleFirestoreError(error, OperationType.LIST, "clients");
+        console.warn("Firestore collection clients list error:", error);
         loadLocalClients();
       });
-      return () => unsub();
     } else {
       loadLocalClients();
     }
+
+    return () => {
+      unsub();
+    };
   }, [user]);
 
   const loadLocalClients = async () => {
