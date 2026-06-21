@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, Mail, Compass, Star, ArrowUpRight, Shield, Heart } from "lucide-react";
+import { Users, Mail, Compass, ArrowUpRight, Shield, Heart } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TeamMember {

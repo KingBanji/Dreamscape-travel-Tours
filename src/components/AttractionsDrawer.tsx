@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, MapPin, Search, Compass, Sparkles, Star, ChevronRight, CheckCircle2 } from "lucide-react";
+import { X, MapPin, Search, Compass, Sparkles, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 import { useScrollSync } from "../hooks/useScrollSync";
 

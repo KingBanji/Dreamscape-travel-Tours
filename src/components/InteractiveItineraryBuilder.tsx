@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import { Destination, Activity } from "../types";
-import { Compass, Calendar, Users, Sliders, CheckCircle2, ChevronRight, Sparkles, Printer, DollarSign, HelpCircle, Flame, Luggage, Plus, Trash2, Copy, Check, RotateCcw } from "lucide-react";
+import { Compass, Calendar, Users, Sliders, CheckCircle2, ChevronRight, Printer, DollarSign, HelpCircle, Flame, Luggage, Plus, Trash2, Copy, Check, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { KWACHA_RATE } from "../lib/currency";
 import { useCurrency } from "../lib/CurrencyContext";
@@ -137,7 +137,13 @@ export default function InteractiveItineraryBuilder({
   // Select active destination
   const [selectedDestId, setSelectedDestId] = useState(destinations[0].id);
   const [daysCount, setDaysCount] = useState(4);
-  const [guestsCount, setGuestsCount] = useState(2);
+  const [guestsCount, setGuestsCount] = useState<number>(() => {
+    const saved = localStorage.getItem("dreamscape_passport_travelers");
+    const num = saved ? Number(saved) : 15;
+    if (num < 15) return 15;
+    if (num > 33) return 33;
+    return num;
+  });
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
 
   // TAB select for Compiled Blueprint View
@@ -302,7 +308,6 @@ export default function InteractiveItineraryBuilder({
         {/* Module Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="flex justify-center items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-brand-gold animate-bounce" />
             <span className="text-xs font-mono uppercase tracking-widest text-brand-teal font-extrabold block">
               Dynamic Custom Blueprints
             </span>
@@ -375,22 +380,48 @@ export default function InteractiveItineraryBuilder({
                 <div className="flex items-center gap-2 bg-brand-dark/80 border border-brand-teal/20 rounded-xl p-2.5">
                   <button
                     type="button"
-                    onClick={() => setGuestsCount(Math.max(1, guestsCount - 1))}
-                    className="w-8 h-8 rounded-lg bg-brand-medium hover:bg-brand-teal/40 flex items-center justify-center font-bold text-sm cursor-pointer"
+                    onClick={() => setGuestsCount(prev => Math.max(15, (Number(prev) || 15) - 1))}
+                    className="w-8 h-8 rounded-lg bg-brand-medium hover:bg-brand-teal/40 flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
                   >
                     -
                   </button>
-                  <span className="flex-grow text-center text-sm font-bold font-mono">
-                    {guestsCount}
-                  </span>
+                  <input
+                    type="number"
+                    min="15"
+                    max="33"
+                    value={guestsCount}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? "" : Number(e.target.value);
+                      setGuestsCount(val as any);
+                    }}
+                    onBlur={() => {
+                      if (guestsCount === "" || isNaN(guestsCount)) {
+                        setGuestsCount(15);
+                      } else if (guestsCount < 15) {
+                        setGuestsCount(15);
+                      } else if (guestsCount > 33) {
+                        setGuestsCount(33);
+                      }
+                    }}
+                    className={`flex-grow text-center text-sm font-bold font-mono bg-transparent outline-none focus:outline-none focus:ring-0 ${
+                      (guestsCount !== "" && (guestsCount < 15 || guestsCount > 33))
+                        ? "text-red-500 bg-red-500/10 focus:ring-1 focus:ring-red-500 rounded-lg p-1 animate-pulse border border-red-500"
+                        : "text-white"
+                    }`}
+                  />
                   <button
                     type="button"
-                    onClick={() => setGuestsCount(Math.min(10, guestsCount + 1))}
-                    className="w-8 h-8 rounded-lg bg-brand-medium hover:bg-brand-teal/40 flex items-center justify-center font-bold text-sm cursor-pointer"
+                    onClick={() => setGuestsCount(prev => Math.min(33, (Number(prev) || 15) + 1))}
+                    className="w-8 h-8 rounded-lg bg-brand-medium hover:bg-brand-teal/40 flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
                   >
                     +
                   </button>
                 </div>
+                {guestsCount !== "" && (guestsCount < 15 || guestsCount > 33) && (
+                  <p className="text-[10px] text-red-400 font-bold font-sans mt-2 flex items-center gap-1 animate-pulse">
+                    ⚠️ Strict group limit is 15 to 33 travelers.
+                  </p>
+                )}
               </div>
             </div>
 

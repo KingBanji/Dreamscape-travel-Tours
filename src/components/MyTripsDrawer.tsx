@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Destination, Booking } from "../types";
 import { 
-  X, Calendar, Users, Star, ClipboardCheck, Trash2, Printer, Compass, 
+  X, Calendar, Users, ClipboardCheck, Trash2, Printer, Compass, 
   Sparkles, Receipt, CheckSquare, Square, Sun, CloudRain, Droplets, Wind, 
-  ShieldAlert, HelpCircle, ChevronDown, ChevronUp, CheckCircle, Briefcase
+  ShieldAlert, HelpCircle, ChevronDown, ChevronUp, CheckCircle, Briefcase,
+  Award, Trophy, Zap, Shield, Gift
 } from "lucide-react";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useScrollSync } from "../hooks/useScrollSync";
+import { useAuthAndData } from "../lib/FirebaseContext";
 
 interface ChecklistItem {
   id: string;
@@ -103,6 +105,103 @@ const getClimateProfile = (destId: string): ClimateProfile => {
   };
 };
 
+interface TierInfo {
+  name: string;
+  badge: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+  iconColor: string;
+  pointsRequired: number;
+  perks: string[];
+  nextPerk: string;
+  icon: any;
+  nextTierBookings: number | null;
+  nextTierName: string;
+}
+
+const getTierInfo = (completedCount: number): TierInfo => {
+  if (completedCount === 0) {
+    return {
+      name: "Sable Scout",
+      badge: "🦌 Sable Scout (Bronze)",
+      bgColor: "bg-amber-500/5 dark:bg-amber-500/10",
+      borderColor: "border-amber-600/30",
+      textColor: "text-amber-700 dark:text-amber-400 font-bold",
+      iconColor: "text-amber-600 dark:text-amber-450",
+      pointsRequired: 1250,
+      perks: [
+        "Earn 1,250 Explorer Points on every confirmed trip",
+        "Official Dreamscape Digital Passport access",
+        "Weekly newsletter with priority off-peak safari rates"
+      ],
+      nextPerk: "Complimentary sundowner riverboat cocktail (unlocked at Silver)",
+      icon: Award,
+      nextTierBookings: 1,
+      nextTierName: "Savanna Pioneer"
+    };
+  } else if (completedCount === 1) {
+    return {
+      name: "Savanna Pioneer",
+      badge: "🥈 Savanna Pioneer (Silver)",
+      bgColor: "bg-slate-400/5 dark:bg-slate-400/10",
+      borderColor: "border-slate-450/30",
+      textColor: "text-slate-600 dark:text-slate-300 font-bold",
+      iconColor: "text-slate-500 dark:text-slate-350",
+      pointsRequired: 2500,
+      perks: [
+        "Earn 1.1x multiplier on checklist task completeness",
+        "Free double-walled thermal safari flask at checkout",
+        "Complimentary guided canopy tour of Victoria Falls"
+      ],
+      nextPerk: "VIP priority lounge invitation at Livingstone Airport (unlocked at Gold)",
+      icon: Shield,
+      nextTierBookings: 2,
+      nextTierName: "Luangwa Ranger"
+    };
+  } else if (completedCount >= 2 && completedCount <= 3) {
+    return {
+      name: "Luangwa Ranger",
+      badge: "🥇 Luangwa Ranger (Gold)",
+      bgColor: "bg-yellow-500/5 dark:bg-yellow-500/10",
+      borderColor: "border-yellow-500/30",
+      textColor: "text-yellow-600 dark:text-brand-gold font-bold",
+      iconColor: "text-yellow-600 dark:text-brand-gold",
+      pointsRequired: 5000,
+      perks: [
+        "1.2x multiplier on all checklist points",
+        "Priority premium open-top safari car booking guarantees",
+        "Complimentary evening bush dinner under the Baobab stars",
+        "VIP lounge invitations & express airport transfers"
+      ],
+      nextPerk: "Exclusive private light aircraft transfers & luxury suite upgrades (unlocked at Platinum)",
+      icon: Trophy,
+      nextTierBookings: 4,
+      nextTierName: "Imperial Explorer"
+    };
+  } else {
+    return {
+      name: "Imperial Explorer",
+      badge: "👑 Imperial Explorer (Platinum Royal)",
+      bgColor: "bg-teal-500/5 dark:bg-teal-500/10",
+      borderColor: "border-teal-500/30",
+      textColor: "text-teal-600 dark:text-brand-teal font-bold",
+      iconColor: "text-teal-600 dark:text-brand-teal",
+      pointsRequired: 5000, // already reached
+      perks: [
+        "Private light aircraft transit upgrade guarantees",
+        "Personalized private lead wildlife tracker assigned per tour",
+        "Complimentary champagne welcome baskets on arrival",
+        "Strict 100% deposit protection and zero cancel fees"
+      ],
+      nextPerk: "You have unlocked the highest possible Zambian travel honor!",
+      icon: Zap,
+      nextTierBookings: null,
+      nextTierName: ""
+    };
+  }
+};
+
 interface MyTripsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -119,6 +218,28 @@ export default function MyTripsDrawer({
   onCancelBooking
 }: MyTripsDrawerProps) {
   const { formatAmount } = useCurrency();
+  const { user } = useAuthAndData();
+  const [showBenefits, setShowBenefits] = useState(false);
+
+  const completedCount = bookings.filter((b) => b.status === "confirmed").length;
+  const pointsPerBooking = 1250;
+  const totalPoints = completedCount * pointsPerBooking;
+  const tier = getTierInfo(completedCount);
+
+  // Compute progress percent to next high level tier
+  let progressPercent = 0;
+  if (completedCount === 0) {
+    progressPercent = 0;
+  } else if (completedCount === 1) {
+    progressPercent = 50; // Progressing from 1 to 2
+  } else if (completedCount === 2) {
+    progressPercent = 50; // Progressing to 4 (e.g. 2 of 4)
+  } else if (completedCount === 3) {
+    progressPercent = 75; // 3 of 4
+  } else {
+    progressPercent = 100;
+  }
+
   const [expandedChecklists, setExpandedChecklists] = useState<Record<string, boolean>>({});
   const [checkedItems, setCheckedItems] = useState<Record<string, Record<string, boolean>>>({});
 
@@ -179,6 +300,119 @@ export default function MyTripsDrawer({
             <span className="text-[10px] font-mono uppercase bg-brand-sand border border-brand-sand-dark px-3 py-1 rounded-full text-brand-medium block font-bold mb-4 w-max">
               Persisted Safaris Dashboard
             </span>
+
+            {/* ─── LOYALTY BADGE & EXPLORER POINTS SECTION ─── */}
+            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-brand-dark/10 to-brand-dark/5 dark:from-black/40 dark:to-black/20 border border-brand-sand-dark/40 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/5 rounded-full blur-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-brand-gold/5 rounded-full blur-lg pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between mb-3.5 pb-2 border-b border-brand-sand-dark/30">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-teal flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 animate-pulse text-brand-gold" /> Explorer Passport Club
+                </span>
+                {user ? (
+                  <span className="text-[9px] font-sans text-brand-dark/60 dark:text-slate-400 italic font-medium">
+                    ID: {user.displayName?.split(" ")[0] || "Explorer"}-{(user.uid || "").substring(0, 4).toUpperCase()}
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-mono text-brand-dark/50 dark:text-slate-400 uppercase tracking-wide">
+                    Anonymous Safari
+                  </span>
+                )}
+              </div>
+
+              <div className="relative z-10 grid grid-cols-2 gap-3 text-left">
+                {/* Active Badge */}
+                <div className={`p-3 rounded-xl border ${tier.borderColor} ${tier.bgColor} flex flex-col justify-between transition-all duration-300`}>
+                  <div>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-brand-dark/50 dark:text-slate-400/80 block mb-1">
+                      Active Badge
+                    </span>
+                    <h3 className={`font-serif text-sm sm:text-base font-extrabold uppercase leading-tight ${tier.textColor}`}>
+                      {tier.name}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-3 pt-1">
+                    <tier.icon className={`w-5 h-5 ${tier.iconColor}`} />
+                    <span className="text-[9px] font-bold font-mono tracking-wider dark:text-white/85 uppercase">
+                      {tier.badge.split(" ")[0]}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Explorer Points */}
+                <div className="p-3 rounded-xl border border-brand-sand-dark/60 dark:border-slate-800 bg-white/40 dark:bg-black/30 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-brand-dark/50 dark:text-slate-400/80 block mb-1">
+                      Explorer Points
+                    </span>
+                    <span className="font-mono text-xl sm:text-2xl font-extrabold text-brand-gold block leading-none">
+                      {totalPoints.toLocaleString()}
+                    </span>
+                  </div>
+                  <span className="text-[8px] font-mono uppercase tracking-wider text-brand-dark/60 dark:text-slate-400 mt-2.5 block font-bold">
+                    {completedCount} completed {completedCount === 1 ? "tour" : "tours"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress to next tier slider */}
+              <div className="relative z-10 mt-4 bg-brand-dark/5 dark:bg-black/20 p-2.5 rounded-xl border border-brand-sand-dark/20 dark:border-slate-800">
+                <div className="flex items-center justify-between text-[9px] font-mono font-bold text-brand-dark/60 dark:text-slate-350 uppercase mb-1">
+                  <span>Tier Elevation Progress</span>
+                  <span className="font-mono">{progressPercent}%</span>
+                </div>
+                <div className="h-1.5 bg-brand-sand-dark/40 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-brand-teal to-brand-gold transition-all duration-300" 
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                {tier.nextTierBookings !== null ? (
+                  <p className="text-[9px] text-brand-dark/60 dark:text-slate-400 mt-2 leading-relaxed font-sans">
+                    Achieve <strong className="text-brand-teal font-mono">{tier.nextTierBookings - completedCount}</strong> more confirmed booking to elevate to <strong className="text-[#f97316] font-bold">{tier.nextTierName}</strong> status!
+                  </p>
+                ) : (
+                  <p className="text-[9px] text-brand-teal dark:text-brand-teal mt-2 leading-relaxed font-sans flex items-center gap-1.5 font-semibold">
+                    <Award className="w-3.5 h-3.5 animate-pulse text-brand-gold" /> Sovereign luxury level attained!
+                  </p>
+                )}
+              </div>
+
+              {/* Collapsible Perks Section */}
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-brand-sand-dark/30">
+                <button
+                  type="button"
+                  onClick={() => setShowBenefits(!showBenefits)}
+                  className="w-full flex items-center justify-between text-left text-[10px] font-bold text-brand-dark/70 dark:text-slate-300 hover:text-brand-teal dark:hover:text-brand-teal transition-colors cursor-pointer select-none"
+                >
+                  <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider">
+                    <Gift className="w-3.5 h-3.5 text-brand-gold animate-bounce" /> Active Club Privileges
+                  </span>
+                  {showBenefits ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-brand-dark/65 dark:text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-brand-dark/65 dark:text-slate-400" />
+                  )}
+                </button>
+
+                {showBenefits && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-neutral-50/50 dark:bg-black/40 border border-brand-sand-dark/20 dark:border-slate-800 space-y-2.5 text-xs">
+                    <ul className="space-y-1.5">
+                      {tier.perks.map((perk, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-[10px] text-brand-dark/85 dark:text-slate-350 leading-relaxed font-sans">
+                          <span className="text-brand-teal font-bold mt-0.5 shrink-0">✓</span>
+                          <span>{perk}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="pt-2 border-t border-brand-sand-dark/30 text-[9px] text-brand-dark/50 dark:text-slate-400 leading-normal">
+                      <span className="font-bold text-brand-gold uppercase tracking-wider">Next Tier Milestone:</span> <span className="italic">"{tier.nextPerk}"</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {bookings.length === 0 ? (
               <div className="text-center py-16 border border-brand-sand-dark border-dashed rounded-3xl p-6">

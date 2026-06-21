@@ -323,8 +323,8 @@ export const TOUR_PACKAGES: TourPackage[] = [
       standard: 3800,
       currency: "ZMW",
       per: "person",
-      minGroup: 4,
-      maxGroup: 6,
+      minGroup: 15,
+      maxGroup: 33,
       deposit: 1900,
       depositPercent: 50
     },

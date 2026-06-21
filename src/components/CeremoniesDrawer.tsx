@@ -253,7 +253,7 @@ export default function CeremoniesDrawer({
         {/* Footprint Disclaimer */}
         <div className="p-6 bg-brand-sand dark:bg-brand-dark border-t border-brand-sand-dark/30">
           <div className="text-[10px] text-brand-dark/60 dark:text-slate-400 font-sans text-center leading-normal">
-            ✨ Facilitated under the special tribal hospitality licensing acts of the Republic of Zambia.
+            ✓ Facilitated under the special tribal hospitality licensing acts of the Republic of Zambia.
           </div>
         </div>
 

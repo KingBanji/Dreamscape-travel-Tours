@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Review, Destination } from "../types";
-import { Star, MessageSquare, Compass, Send, CheckCircle2, Trash2 } from "lucide-react";
+import { MessageSquare, Compass, Send, CheckCircle2, Trash2 } from "lucide-react";
 import { useAuthAndData } from "../lib/FirebaseContext";
 
 interface ReviewSectionProps {
@@ -73,14 +73,10 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
                 Agility Overview
               </h3>
               <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold text-brand-dark font-mono">4.9</span>
+                <span className="text-4xl font-bold text-brand-dark font-mono">4.9 / 5</span>
                 <div>
-                  <div className="flex text-brand-gold">
-                    <Star className="w-5 h-5 fill-brand-gold text-brand-gold" />
-                    <Star className="w-5 h-5 fill-brand-gold text-brand-gold" />
-                    <Star className="w-5 h-5 fill-brand-gold text-brand-gold" />
-                    <Star className="w-5 h-5 fill-brand-gold text-brand-gold" />
-                    <Star className="w-5 h-5 fill-brand-gold text-brand-gold" />
+                  <div className="text-[10px] uppercase font-bold text-brand-teal tracking-wide">
+                    Excellent Journey Rating
                   </div>
                   <span className="text-xs text-brand-dark/50 block font-mono mt-0.5">
                     184 Verified Log Entries
@@ -159,9 +155,9 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
                       onChange={(e) => setNewRating(Number(e.target.value))}
                       className="w-full bg-white border border-brand-sand-dark text-xs rounded-lg p-2.5 cursor-pointer focus:outline-none"
                     >
-                      <option value="5">5 Stars (Pristine)</option>
-                      <option value="4">4 Stars (Great)</option>
-                      <option value="3">3 Stars (Satisfactory)</option>
+                      <option value="5">5 / 5 Rating (Pristine)</option>
+                      <option value="4">4 / 5 Rating (Great)</option>
+                      <option value="3">3 / 5 Rating (Satisfactory)</option>
                     </select>
                   </div>
                 </div>
@@ -264,10 +260,8 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
                       </div>
 
                       <div className="flex flex-col items-start sm:items-end sm:pr-8">
-                        <div className="flex text-brand-gold">
-                          {Array.from({ length: rev.rating }).map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-brand-gold text-brand-gold" />
-                          ))}
+                        <div className="text-xs font-mono font-bold text-brand-teal uppercase tracking-wider bg-brand-sand px-2 py-0.5 rounded-md">
+                          Rating: {rev.rating} / 5
                         </div>
                         <span className="text-[9px] font-mono text-brand-teal block uppercase mt-0.5">
                           {rev.destinationId

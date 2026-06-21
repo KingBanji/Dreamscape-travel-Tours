@@ -43,23 +43,6 @@ export default function DreamscapeLogo({ className = "w-11 h-11" }: DreamscapeLo
           fill="#111C2D"
         />
 
-        {/* Stars */}
-        {/* Star 1 (upper center) */}
-        <path
-          d="M 110,50 Q 110,54 114,54 Q 110,54 110,58 Q 110,54 106,54 Q 110,54 110,50 Z"
-          fill="#111C2D"
-        />
-        {/* Star 2 (middle center) */}
-        <path
-          d="M 98,67 Q 98,70 101,70 Q 98,70 98,73 Q 98,70 95,70 Q 98,70 98,67 Z"
-          fill="#111C2D"
-        />
-        {/* Star 3 (lower left) */}
-        <path
-          d="M 66,93 Q 66,95 68,95 Q 66,95 66,97 Q 66,95 64,95 Q 66,95 66,93 Z"
-          fill="#111C2D"
-        />
-
         {/* Airplane */}
         <g transform="translate(126, 68) rotate(-22)">
           <path

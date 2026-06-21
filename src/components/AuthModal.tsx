@@ -226,10 +226,32 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
   const handleGoogleSignInClick = async () => {
     try {
       setLoading(true);
+      setFeedbackMsg(null);
       await signIn();
       onClose();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("Google Web Auth Exception Caught in Modal:", e);
+      const errStr = e && typeof e === "object" ? (e.message || JSON.stringify(e)) : String(e);
+      let localizedError = language === "fr"
+        ? `L'authentification Google a échoué : ${errStr}`
+        : `Google Authentication Error: ${errStr}`;
+
+      if (
+        errStr.includes("auth/internal-error") || 
+        errStr.includes("auth/network-request-failed") || 
+        errStr.includes("popup-closed-by-user") || 
+        errStr.includes("popup-blocked") ||
+        errStr.includes("iframe-restriction")
+      ) {
+        localizedError = language === "fr"
+          ? "🔐 L'authentification Google est restreinte par les règles de sécurité de l'iframe de votre navigateur. Veuillez vous inscrire ou vous connecter ci-dessus avec votre E-mail et Mot de passe, ou ouvrez cette application dans un nouvel onglet pour utiliser Google."
+          : "🔐 Google authentication is restricted by your browser's iframe/third-party cookie isolation rules in this preview canvas. Please use the standard Email & Password registration/login forms above, or open the application in a new tab to authenticate via Google.";
+      }
+
+      setFeedbackMsg({
+        type: "error",
+        text: localizedError
+      });
     } finally {
       setLoading(false);
     }

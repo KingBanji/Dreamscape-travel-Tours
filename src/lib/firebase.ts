@@ -1,9 +1,8 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from "firebase/auth";
 import { 
+  getFirestore,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   collection, 
   doc, 
   setDoc, 
@@ -13,7 +12,9 @@ import {
   where, 
   orderBy, 
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import firebaseConfig from "../../firebase-applet-config.json";
@@ -56,19 +57,27 @@ let functions: any = null;
 if (isFirebaseEnabled) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    db = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      }),
-      experimentalForceLongPolling: true
-    }, (firebaseConfig as any).firestoreDatabaseId || undefined);
+    try {
+      db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+        experimentalLongPollingOptions: {
+          useFetchStreams: false,
+        } as any,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      } as any, (firebaseConfig as any).firestoreDatabaseId || undefined);
+    } catch (e: any) {
+      db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || undefined);
+    }
     auth = getAuth(app);
     functions = getFunctions(app);
 
     // Validate connection to Firestore as required by Skill
     const testConnection = async () => {
       try {
-        await getDocFromServer(doc(db, "test", "connection"));
+        // Querying a publicly readable collection path ensures valid connection detection without breaking security rules
+        await getDocFromServer(doc(db, "reviews", "connection_test"));
       } catch (error) {
         console.warn("Firestore warm-up check: Backend connection is resolving. Operating resiliently in local offline-first/cache mode until sync succeeds.", error);
       }

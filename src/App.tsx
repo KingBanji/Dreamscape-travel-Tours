@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Booking, Destination, Review, TourPackage } from "./types";
 import { DESTINATIONS, TOUR_PACKAGES, FAQS, MOCK_REVIEWS } from "./data/travelData";
 import { PLAYLISTS } from "./data/playlists";
@@ -12,7 +12,7 @@ import FAQSection from "./components/FAQSection";
 import ContactSection from "./components/ContactSection";
 import TeamSection from "./components/TeamSection";
 import Footer from "./components/Footer";
-import { Compass, X } from "lucide-react";
+import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info } from "lucide-react";
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
 // @ts-ignore
@@ -116,6 +116,18 @@ export default function App() {
     return localStorage.getItem("dreamscape_music_active") === "true";
   });
 
+  const [passportTravelers, setPassportTravelers] = useState<number>(() => {
+    const saved = localStorage.getItem("dreamscape_passport_travelers");
+    const num = saved ? Number(saved) : 15;
+    if (num < 15) return 15;
+    if (num > 33) return 33;
+    return num;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dreamscape_passport_travelers", String(passportTravelers));
+  }, [passportTravelers]);
+
   useEffect(() => {
     localStorage.setItem("dreamscape_active_playlist", activePlaylistId);
   }, [activePlaylistId]);
@@ -132,6 +144,8 @@ export default function App() {
   const [musicTourRegisterOpen, setMusicTourRegisterOpen] = useState(false);
   const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
   const [isSpotlightExpanded, setIsSpotlightExpanded] = useState(false);
+  const [benefitsModalOpen, setBenefitsModalOpen] = useState(false);
+  const [isBrochureDownloading, setIsBrochureDownloading] = useState(false);
 
   const [appAuthModalOpen, setAppAuthModalOpen] = useState(false);
   const [appAuthModalTab, setAppAuthModalTab] = useState<"signup" | "login">("signup");
@@ -181,6 +195,89 @@ export default function App() {
     reviewData: Omit<Review, "id" | "date" | "avatarColor" | "verified">
   ) => {
     addReview(reviewData);
+  };
+
+  const handleDownloadBrochure = () => {
+    setIsBrochureDownloading(true);
+    setTimeout(() => {
+      const content = `
+======================================================
+         DREAMSCAPE TOURS & TRAVEL ZAMBIA
+          Official Safari & Tour Brochure
+======================================================
+
+Embark with the Explorer Elite on our bespoke wilderness journeys
+across the heart of Zambia, crafted with utmost luxury and security.
+
+📍 OUR PRIMARY DESTINATIONS & TOURS
+
+1. SHANTUMBU FALLS WILDERNESS TREK & CAMPING
+   - Locality: Lusaka Region (Bespoke Eco-Trails)
+   - Highlights: Private woodland picnic, pristine waterfalls & swimming lagoon.
+   - Core Concept: A serene quick escape to connect with rural Zambian beauty.
+
+2. SIOMA NGWEZI WILDERNESS OUTPOST
+   - Locality: Southwest Zambia near Kaza Transfrontier Conservation
+   - Highlights: Untouched elephant migration trails, boat safari near Sioma Falls.
+   - Core Concept: Pure, raw, authentic wilderness safari far away from crowds.
+
+3. KUNDALILA FALLS ESCARPMENT CAMPING
+   - Locality: Muchinga Province, Great Rift Valley Edge
+   - Highlights: Spectacular 70m plunge waterfall, deep forest overnight.
+   - Core Concept: Stargazing in the wild with premium safari-tented setups.
+
+4. SOUTH LUANGWA PREMIER WALKING SAFARI
+   - Locality: Luangwa River Valley
+   - Highlights: High-density predator sightings, professional armed escorts.
+   - Core Concept: Walking barefoot on the wild trails, experiencing nature unfiltered.
+
+======================================================
+       EXCLUSIVES OF THE EXPLORER PASSPORT CLUB
+======================================================
+
+Enhance your registration funnel and unlock these status levels:
+
+💎 BRONZE FOOTPRINT (1 - 2 Safaris)
+   - Accrue localized wildlife badges.
+   - Sync customized itineraries with real-time route updates.
+   - Dedicated Live-chat & Emergency Backup Channels.
+
+💎 SILVER ELEPHANT (3 - 5 Safaris)
+   - 3% Cash refund on direct Mobile Money deposit transactions.
+   - Unlimited access to custom-compiled Spotify Wild Ambient tracks.
+   - Priority booking windows for high-demand season periods.
+
+💎 GOLD CHEETAH (6 - 10 Safaris)
+   - Complimentary private bush dinners on your journeys.
+   - Priority customize support to tailor your day-by-day itineraries.
+   - Free group guest up-sizing for up to 3 companions.
+
+💎 EMERALD EAGLE (11+ Safaris & Premium Accounts)
+   - Dedicated 24/7 travel concierge hotline.
+   - Private 4x4 utility car upgrades at no cost.
+   - Exclusive invitations to annual tribal ceremonies & cultural tours.
+
+======================================================
+                 CONTACT INFORMATION
+======================================================
+📧 Email Channels: bookings@dreamscapetourszm.com
+📱 WhatsApp Helpline: Connect securely via our floating chat handle
+📍 Address: Lusaka, Republic of Zambia
+
+Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
+      `;
+      
+      const blob = new Blob([content.trim()], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Dreamscape-Tours-Zambia-Brochure.txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setIsBrochureDownloading(false);
+    }, 1200);
   };
 
   const handleSelectPredefinedPackage = (pkg: TourPackage) => {
@@ -333,14 +430,88 @@ export default function App() {
                     : "Create a Dreamscape Traveler profile to sync bespoke safari itineraries, track wildlife footsteps, earn explorer badges, and authorize instant direct Mobile Money tour deposits securely."}
                 </p>
 
+                {/* Number of Travelers Input */}
+                <div className="mt-5 max-w-xs" id="passport-club-travelers-container">
+                  <label htmlFor="passport-club-travelers" className="block text-brand-sand/70 text-[10px] font-mono uppercase tracking-wider mb-2">
+                    {language === "fr" ? "✦ Nombre de Voyageurs (15 - 33)" : "✦ Number of Travelers (15 - 33)"}
+                  </label>
+                  <input
+                    id="passport-club-travelers"
+                    type="number"
+                    min="15"
+                    max="33"
+                    value={passportTravelers}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? "" : Number(e.target.value);
+                      setPassportTravelers(val as any);
+                    }}
+                    onBlur={() => {
+                      if (passportTravelers === "" || isNaN(passportTravelers)) {
+                        setPassportTravelers(15);
+                      } else if (passportTravelers < 15) {
+                        setPassportTravelers(15);
+                      } else if (passportTravelers > 33) {
+                        setPassportTravelers(33);
+                      }
+                    }}
+                    className={`w-full bg-slate-900 border text-white text-sm px-4 py-2.5 rounded-xl transition-all font-sans focus:outline-none ${
+                      (passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33))
+                        ? "border-red-500 bg-red-950/40 text-red-100 focus:ring-1 focus:ring-red-500 animate-pulse font-bold"
+                        : "border-[#f97316]/30 hover:border-[#f97316]/60 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    }`}
+                    placeholder="Enter travelers (15-33)"
+                  />
+                  {passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33) && (
+                    <p className="text-[10px] text-red-400 font-bold font-sans mt-2 animate-bounce">
+                      ⚠️ {language === "fr" ? "Le groupe doit être de 15 à 33 personnes." : "Group must be between 15 and 33 travelers."}
+                    </p>
+                  )}
+                </div>
+
                 {/* The precise HTML segment requested by the user */}
-                <div className="flex space-x-4 mt-6">
-                  <a href="/signup" className="bg-orange-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
+                <div className="flex flex-wrap gap-4 mt-6">
+                  <a href="/signup" id="passport-club-signup-btn" className="bg-orange-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
                     Sign Up
                   </a>
-                  <a href="/login" className="border border-yellow-500 text-yellow-500 px-6 py-3 rounded-lg hover:bg-yellow-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
+                  <a href="/login" id="passport-club-login-btn" className="border border-yellow-500 text-yellow-500 px-6 py-3 rounded-lg hover:bg-yellow-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
                     Log In
                   </a>
+                </div>
+
+                {/* row of quick action buttons to enhance the registration funnel */}
+                <div className="mt-8 pt-6 border-t border-[#f97316]/20 flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center">
+                  <div className="flex items-center gap-1.5 text-[#f97316]/90 font-mono text-[10px] uppercase font-bold tracking-widest">
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Quick Explorations:</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3.5 w-full sm:w-auto">
+                    <button
+                      onClick={handleDownloadBrochure}
+                      disabled={isBrochureDownloading}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 font-sans"
+                    >
+                      {isBrochureDownloading ? (
+                        <>
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
+                          <span>Preparing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5 text-[#f97316] shrink-0" />
+                          <span>Download Brochure</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setBenefitsModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#38bdf8]/10 border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans"
+                    >
+                      <Award className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                      <span>View Membership Benefits</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -767,6 +938,174 @@ export default function App() {
       <Suspense fallback={null}>
         <AuthModal isOpen={appAuthModalOpen} onClose={() => setAppAuthModalOpen(false)} initialTab={appAuthModalTab} />
       </Suspense>
+
+      {/* Membership Benefits Modal */}
+      <AnimatePresence>
+        {benefitsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setBenefitsModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative z-10 w-full max-w-2xl bg-slate-900 border border-[#f97316]/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1">
+                {/* Close Button */}
+                <button
+                  onClick={() => setBenefitsModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-brand-sand-light transition-all cursor-pointer"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/15 border border-[#f97316]/30 text-[10px] font-mono uppercase tracking-[0.2em] text-[#f97316] font-bold mb-3">
+                    ✦ Member Privileges ✦
+                  </div>
+                  <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-white uppercase tracking-tight">
+                    Passport Club Benefits
+                  </h3>
+                  <p className="text-brand-sand/70 text-xs sm:text-sm mt-2 max-w-md mx-auto">
+                    Accumulate explorer footsteps on every safari booking and elevate your status tiers.
+                  </p>
+                </div>
+
+                {/* Tiers Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  {/* Tier 1: Bronze */}
+                  <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono font-bold tracking-widest text-amber-600">BRONZE FOOTPRINT</span>
+                        <span className="text-[10px] font-mono bg-slate-900 text-slate-400 px-2.5 py-0.5 rounded-full">1-2 Safaris</span>
+                      </div>
+                      <ul className="space-y-2.5 text-xs text-brand-sand/80 font-sans">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" style={{ color: "#d97706" }} />
+                          <span>Track custom wildlife footprint marks on-dashboard</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" style={{ color: "#d97706" }} />
+                          <span>Save custom day-by-day itineraries to your cloud trips drawer</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Tier 2: Silver */}
+                  <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono font-bold tracking-widest text-[#38bdf8]">SILVER ELEPHANT</span>
+                        <span className="text-[10px] font-mono bg-[#38bdf8]/15 text-[#38bdf8] px-2.5 py-0.5 rounded-full">3-5 Safaris</span>
+                      </div>
+                      <ul className="space-y-2.5 text-xs text-brand-sand/80 font-sans">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-[#38bdf8] shrink-0 mt-0.5" />
+                          <span>3% Cashbacks on all direct Mobile Money deposits</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-[#38bdf8] shrink-0 mt-0.5" />
+                          <span>Ad-free Spotify curated wildlife soundtracks stream</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-[#38bdf8] shrink-0 mt-0.5" />
+                          <span>Access exclusive regional attractions maps</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Tier 3: Gold */}
+                  <div className="bg-slate-950/80 p-5 rounded-2xl border border-[#f97316]/20 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono font-bold tracking-widest text-brand-gold">GOLD CHEETAH</span>
+                        <span className="text-[10px] font-mono bg-brand-gold/15 text-brand-gold px-2.5 py-0.5 rounded-full">6-10 Safaris</span>
+                      </div>
+                      <ul className="space-y-2.5 text-xs text-brand-sand/80 font-sans">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" style={{ color: "#d97706" }} />
+                          <span>Complimentary fireside bush dinners with guide chefs</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" style={{ color: "#d97706" }} />
+                          <span>Free groups upscale to 4 companions on-demand</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" style={{ color: "#d97706" }} />
+                          <span>Priority support channels for custom itinerary edits</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Tier 4: Emerald */}
+                  <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-emerald-500/20 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono font-bold tracking-widest text-emerald-400">EMERALD EAGLE</span>
+                        <span className="text-[10px] font-mono bg-emerald-500/15 text-emerald-400 px-2.5 py-0.5 rounded-full">11+ Safaris</span>
+                      </div>
+                      <ul className="space-y-2.5 text-xs text-brand-sand/80 font-sans">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>24/7 Dedicated offline personal safari concierge</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Complimentary private luxury 4x4 cruiser upgrade</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>Invitations to sacred tribal heritage showcase events</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950 border border-[#f97316]/20 p-4 rounded-2xl flex items-start gap-3 mt-6">
+                  <ShieldCheck className="w-5 h-5 text-[#f97316] shrink-0 mt-0.5" />
+                  <div className="text-left font-sans">
+                    <span className="text-xs font-bold text-white block">Secured Registration Funnel</span>
+                    <span className="text-[10.5px] text-brand-sand/75 block mt-0.5">
+                      Creating your account takes under 45 seconds and allows tracking wildlife footsteps on secure, direct-write Firestore servers.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Button to direct to registration */}
+              <div className="p-4 sm:p-6 bg-slate-950/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <span className="text-xs font-mono text-brand-sand/65">Ready to begin your journey?</span>
+                <button
+                  onClick={() => {
+                    setBenefitsModalOpen(false);
+                    setAppAuthModalTab("signup");
+                    setAppAuthModalOpen(true);
+                  }}
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-yellow-600 text-black font-semibold rounded-xl text-xs sm:text-sm tracking-wide transition-all cursor-pointer transform active:scale-95 duration-200 shadow-md animate-pulse"
+                >
+                  Join Passport Club Now
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

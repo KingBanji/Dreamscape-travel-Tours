@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Destination } from "../types";
-import { Star, MapPin, Calendar, Clock, ArrowRight, Sparkles, Filter, Compass, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Calendar, Clock, ArrowRight, Filter, Compass, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -74,7 +74,6 @@ export default function DestinationList({
         {/* Editorial Heading */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="flex justify-center items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-brand-gold" />
             <span className="text-xs font-mono uppercase tracking-widest text-brand-teal font-extrabold">
               Zambian Explorations
             </span>
@@ -306,7 +305,7 @@ export default function DestinationList({
                     {/* Card Footer Actions Row - Book button and custom design button */}
                     <div className="pt-4 border-t border-brand-sand-dark/80 flex items-center justify-between">
                       <div className="flex items-center gap-1 text-xs font-mono text-brand-dark font-bold bg-brand-sand px-2.5 py-1 rounded-lg">
-                        <Star className="w-3.5 h-3.5 fill-brand-gold text-brand-gold" />
+                        <span className="text-[9px] text-brand-teal uppercase font-bold tracking-wider mr-1">Rating</span>
                         <span>{dest.rating}</span>
                         <span className="text-[10px] font-light text-brand-dark/60">
                           ({dest.reviewCount})

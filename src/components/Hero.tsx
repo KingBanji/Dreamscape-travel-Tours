@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { Search, MapPin, Calendar, Compass, Star, ChevronDown } from "lucide-react";
+import { Search, MapPin, Calendar, Compass, Users, ChevronDown } from "lucide-react";
 import { motion } from "motion/react";
 import { useLanguage } from "../lib/LanguageContext";
 
@@ -15,7 +15,7 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
   const { t, language } = useLanguage();
   const [selectedDestId, setSelectedDestId] = useState("");
   const [selectedActivity, setSelectedActivity] = useState("");
-  const [guests, setGuests] = useState(2);
+  const [guests, setGuests] = useState(15);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -176,7 +176,7 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
           {/* Guest Count Input Selector */}
           <div className="md:col-span-2 flex flex-col text-left">
             <span className="text-[10px] font-bold text-brand-medium uppercase tracking-wider mb-1 flex items-center gap-1">
-              <Star className="w-3 h-3 text-brand-gold" /> Expedition Size
+              <Users className="w-3 h-3 text-brand-gold" /> Expedition Size
             </span>
             <div className="relative">
               <select
@@ -184,9 +184,9 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
                 onChange={(e) => setGuests(Number(e.target.value))}
                 className="w-full bg-brand-sand border border-brand-sand-dark text-brand-dark text-sm rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-brand-teal appearance-none cursor-pointer"
               >
-                {[1, 2, 3, 4, 5, 6, 8, 10].map((num) => (
+                {Array.from({ length: 33 - 15 + 1 }, (_, i) => i + 15).map((num) => (
                   <option key={num} value={num}>
-                    {num} {num === 1 ? "Traveler" : "Travelers"}
+                    {num} Travelers
                   </option>
                 ))}
               </select>

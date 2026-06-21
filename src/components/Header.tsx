@@ -182,10 +182,10 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
                     ? "bg-brand-teal text-white shadow-sm"
                     : "text-brand-sand/65 hover:text-white"
                 }`}
-                title="Light Sand Theme"
+                title="Light Theme"
               >
                 <Sun className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">SAND</span>
+                <span className="hidden sm:inline">LIGHT</span>
               </button>
               <button
                 onClick={() => onChangeTheme("dark")}
@@ -317,7 +317,7 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
             onClick={() => { setMobileMenuOpen(false); onOpenAttractions(); }}
             className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold text-brand-gold-light bg-brand-medium/40 hover:bg-brand-medium hover:text-white transition-colors border border-brand-gold-light/20"
           >
-            ✨ {language === "fr" ? "Attractions Zambie" : "Zambian Attractions"}
+            🧭 {language === "fr" ? "Attractions Zambie" : "Zambian Attractions"}
           </button>
           <button
             onClick={() => handleNavClick("home")}
@@ -411,7 +411,7 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
 
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-brand-sand/50">THEME MODE</span>
-              <div className="flex items-center bg-brand-medium/60 rounded-full p-0.5 border border-brand-teal/30 shadow-inner">
+              <div className="flex items-center bg-brand-medium/60 rounded-full p-0.5 border border-brand-teal/30 shadow-inner block">
                 <button
                   onClick={() => onChangeTheme("sand")}
                   className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wide transition-all flex items-center justify-center gap-1 ${
@@ -421,7 +421,7 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
                   }`}
                 >
                   <Sun className="w-3.5 h-3.5" />
-                  <span>SAND</span>
+                  <span>LIGHT</span>
                 </button>
                 <button
                   onClick={() => onChangeTheme("dark")}

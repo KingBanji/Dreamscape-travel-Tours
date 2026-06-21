@@ -35,7 +35,7 @@ export default function SpotifyDrawer({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div 
+      <div
         ref={drawerRef}
         onMouseEnter={scrollSync.handleMouseEnter}
         onMouseLeave={scrollSync.handleMouseLeave}
@@ -77,7 +77,7 @@ export default function SpotifyDrawer({
 
             {/* Selector Tabs */}
             <div className="grid grid-cols-3 gap-2 mb-6">
-              {PLAYLISTS.map((p) => (
+              {PLAYLISTS.map((p, index) => (
                 <button
                   key={p.id}
                   onClick={() => {
@@ -89,16 +89,22 @@ export default function SpotifyDrawer({
                       ? "bg-[#0A2540] border-brand-teal text-white shadow-md shadow-brand-teal/15"
                       : "bg-white/10 dark:bg-black/20 border-brand-sand-dark/40 dark:border-slate-800 text-brand-dark/85 dark:text-slate-300 hover:bg-white/20"
                   }`}
+                  style={index === 1 ? { color: "#05071c" } : undefined}
                 >
                   <span className="text-lg">{p.emoji}</span>
-                  <span className="truncate w-full text-center">{p.title}</span>
+                  <span 
+                    className="truncate w-full text-center"
+                    style={index === 1 ? { color: "#946010" } : index === 2 ? { color: "#b38222" } : undefined}
+                  >
+                    {p.title}
+                  </span>
                 </button>
               ))}
             </div>
 
             {/* Description of active playlist */}
             <div className="mb-4 bg-black/5 dark:bg-black/20 p-3 rounded-xl border border-brand-sand-dark/20 dark:border-slate-800 text-center">
-              <p className="text-xs text-brand-dark/75 dark:text-slate-300 italic">
+              <p className="text-xs italic" style={{ color: "#e08b00" }}>
                 &ldquo;{currentPlaylist.description}&rdquo;
               </p>
             </div>
@@ -138,7 +144,6 @@ export default function SpotifyDrawer({
             🎵 Carefully selected dynamically to match the premium vibes of Dreamscape Tours Zambia.
           </div>
         </div>
-
       </div>
     </div>
   );

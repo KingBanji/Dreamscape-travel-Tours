@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import { Destination, Activity, Booking } from "../types";
-import { X, Calendar, Users, Star, ClipboardCheck, Compass, DollarSign, Wallet2, CheckCircle, ShieldCheck } from "lucide-react";
+import { X, Calendar, Users, ClipboardCheck, Compass, DollarSign, Wallet2, CheckCircle, ShieldCheck } from "lucide-react";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
 import { TOUR_PACKAGES } from "../data/travelData";
@@ -41,7 +41,13 @@ export default function BookingModal({
   const [phone, setPhone] = useState("");
   const [startDate, setStartDate] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
-  const [guestsCount, setGuestsCount] = useState(2);
+  const [guestsCount, setGuestsCount] = useState<number>(() => {
+    const saved = localStorage.getItem("dreamscape_passport_travelers");
+    const num = saved ? Number(saved) : 15;
+    if (num < 15) return 15;
+    if (num > 33) return 33;
+    return num;
+  });
 
   // Dynamic formula & duration states
   const [selectedDuration, setSelectedDuration] = useState<number>(4);
@@ -460,19 +466,38 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                   {!preSelectedPkg?.isCustom && (
                     <div>
                       <label className="block text-[10px] font-bold text-brand-dark/75 uppercase tracking-wide mb-1">
-                        Travelers Count
+                        Travelers Count (15 - 33)
                       </label>
-                      <select
+                      <input
+                        type="number"
+                        min="15"
+                        max="33"
                         value={guestsCount}
-                        onChange={(e) => setGuestsCount(Number(e.target.value))}
-                        className="w-full bg-brand-sand border border-brand-sand-dark text-brand-dark text-sm rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-brand-teal cursor-pointer"
-                      >
-                        {[1, 2, 3, 4, 5, 6, 8, 12].map((n) => (
-                          <option key={n} value={n}>
-                            {n} Explorer{n > 1 ? "s" : ""}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? "" : Number(e.target.value);
+                          setGuestsCount(val as any);
+                        }}
+                        onBlur={() => {
+                          if (guestsCount === "" || isNaN(guestsCount)) {
+                            setGuestsCount(15);
+                          } else if (guestsCount < 15) {
+                            setGuestsCount(15);
+                          } else if (guestsCount > 33) {
+                            setGuestsCount(33);
+                          }
+                        }}
+                        className={`w-full bg-brand-sand border text-brand-dark text-sm rounded-xl p-2.5 focus:outline-none transition-all ${
+                          (guestsCount !== "" && (guestsCount < 15 || guestsCount > 33))
+                            ? "border-red-500 bg-red-50 text-red-900 focus:ring-1 focus:ring-red-500 animate-pulse font-bold"
+                            : "border-brand-sand-dark focus:ring-1 focus:ring-brand-teal"
+                        }`}
+                        placeholder="Enter travelers (15-33)"
+                      />
+                      {guestsCount !== "" && (guestsCount < 15 || guestsCount > 33) && (
+                        <p className="text-[10px] text-red-600 font-bold font-sans mt-1.5 ml-1 animate-pulse">
+                          ⚠️ Group Booking size must be between 15 and 33.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

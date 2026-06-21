@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, CheckCircle2, Clock, MapPin, Compass, Sparkles, Star, ChevronDown, ChevronUp, AlertCircle, Calendar, Users } from "lucide-react";
+import { X, CheckCircle2, Clock, MapPin, Compass, Sparkles, ChevronDown, ChevronUp, AlertCircle, Calendar, Users } from "lucide-react";
 import { TourPackage, Destination } from "../types";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -103,7 +103,11 @@ export default function PackagesDrawer({
                         </span>
                         <h4 className="font-serif text-sm sm:text-base font-bold text-brand-dark dark:text-white leading-tight uppercase flex flex-wrap items-center gap-1.5 pt-0.5">
                           {pkg.name}
-                          {pkg.isFeatured && <Star className="w-3.5 h-3.5 fill-brand-gold text-brand-gold shrink-0" />}
+                          {pkg.isFeatured && (
+                            <span className="text-[9px] font-mono font-bold bg-brand-gold/20 text-yellow-700 dark:text-brand-gold border border-brand-gold/30 px-1.5 py-0.5 rounded uppercase">
+                              Premier
+                            </span>
+                          )}
                           {pkg.isPreSale && (
                             <span className="text-[9px] font-mono font-black bg-amber-500 text-brand-dark px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse inline-flex items-center gap-1">
                               ⛺ {language === "fr" ? "PRÉ-VENTE" : "PRE-SALE"}
@@ -332,7 +336,7 @@ export default function PackagesDrawer({
         {/* Dynamic footer assurance banner */}
         <div className="p-6 bg-brand-sand dark:bg-brand-dark border-t border-brand-sand-dark/30">
           <div className="text-[10px] text-brand-dark/60 dark:text-slate-400 font-sans text-center leading-normal">
-            ✨ Free rescheduling dates assurance outstanding up under policy restrictions.
+            ✓ Free rescheduling dates assurance outstanding up under policy restrictions.
           </div>
         </div>
 
