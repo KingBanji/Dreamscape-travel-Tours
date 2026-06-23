@@ -346,6 +346,21 @@ img:not([class*="h-"]):not([class*="w-"]) {
   color: #0a1120 !important;
 }
 
+/* Custom flicker animation for premium interactive indicators */
+@keyframes custom-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.8));
+  }
+  20%, 24%, 55% {
+    opacity: 0.35;
+    filter: drop-shadow(0 0 1px rgba(249, 115, 22, 0.2));
+  }
+}
+.animate-flicker {
+  animation: custom-flicker 2.5s infinite;
+}
+
 
 
 

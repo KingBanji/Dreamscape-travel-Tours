@@ -10,9 +10,8 @@ import InteractiveItineraryBuilder from "./components/InteractiveItineraryBuilde
 import ReviewSection from "./components/ReviewSection";
 import FAQSection from "./components/FAQSection";
 import ContactSection from "./components/ContactSection";
-import TeamSection from "./components/TeamSection";
 import Footer from "./components/Footer";
-import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info } from "lucide-react";
+import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users } from "lucide-react";
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
 // @ts-ignore
@@ -23,6 +22,7 @@ const BookingModal = lazy(() => import("./components/BookingModal"));
 const MyTripsDrawer = lazy(() => import("./components/MyTripsDrawer"));
 const CeremoniesDrawer = lazy(() => import("./components/CeremoniesDrawer"));
 const PackagesDrawer = lazy(() => import("./components/PackagesDrawer"));
+const FunGroupToursModal = lazy(() => import("./components/FunGroupToursModal"));
 const SpotifyDrawer = lazy(() => import("./components/SpotifyDrawer"));
 const FloatingWhatsApp = lazy(() => import("./components/FloatingWhatsApp"));
 const AIChatBot = lazy(() => import("./components/AIChatBot"));
@@ -146,6 +146,7 @@ export default function App() {
   const [isSpotlightExpanded, setIsSpotlightExpanded] = useState(false);
   const [benefitsModalOpen, setBenefitsModalOpen] = useState(false);
   const [isBrochureDownloading, setIsBrochureDownloading] = useState(false);
+  const [funGroupToursModalOpen, setFunGroupToursModalOpen] = useState(false);
 
   const [appAuthModalOpen, setAppAuthModalOpen] = useState(false);
   const [appAuthModalTab, setAppAuthModalTab] = useState<"signup" | "login">("signup");
@@ -511,6 +512,21 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                       <Award className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
                       <span>View Membership Benefits</span>
                     </button>
+
+                    <button
+                      onClick={() => setFunGroupToursModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans relative overflow-hidden"
+                    >
+                      <span className="relative flex h-2 w-2 mr-0.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-400"></span>
+                      </span>
+                      <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0 animate-flicker" />
+                      <span>{language === "fr" ? "Voyages de Groupe" : "Fun Group Tours"}</span>
+                      <span className="text-[8px] bg-[#f97316]/20 text-orange-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono animate-pulse">
+                        {language === "fr" ? "Aperçu" : "Interactive"}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -684,9 +700,6 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
         {/* 5. CONTACT + RESCHEDULE POLICY — close the sale */}
         <ContactSection />
-
-        {/* 6. MEET THE TEAM — learn about the leadership */}
-        <TeamSection />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 w-full relative z-20">
           <div className="bg-brand-dark text-brand-sand rounded-3xl p-6 sm:p-8 md:p-10 border border-brand-teal/20 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
@@ -937,6 +950,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
  
       <Suspense fallback={null}>
         <AuthModal isOpen={appAuthModalOpen} onClose={() => setAppAuthModalOpen(false)} initialTab={appAuthModalTab} />
+        <FunGroupToursModal isOpen={funGroupToursModalOpen} onClose={() => setFunGroupToursModalOpen(false)} />
       </Suspense>
 
       {/* Membership Benefits Modal */}
