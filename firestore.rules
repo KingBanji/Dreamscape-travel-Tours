@@ -22,7 +22,7 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
     }
 
     // --- Users Collection Rules ---
@@ -178,6 +178,42 @@ service cloud.firestore {
         && request.resource.data.keys().size() <= 8;
 
       allow delete: if isAdmin();
+    }
+
+    // --- WhatsApp Messages Rules ---
+    match /whatsapp_messages/{messageId} {
+      allow get, list: if (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == request.auth.token.email))
+        || (resource.data.userId is string && resource.data.userId.matches('^anon_.*'))
+        || isAdmin();
+
+      allow create: if isValidId(messageId)
+        && request.resource.data.text is string
+        && request.resource.data.sender in ['user', 'agent']
+        && request.resource.data.userId is string;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- Newsletter Subscribers Rules ---
+    match /newsletter_subscribers/{subscriberId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(subscriberId)
+        && request.resource.data.id == subscriberId
+        && request.resource.data.email is string && request.resource.data.email.size() <= 128
+        && request.resource.data.createdAt is string;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- Dispatched Newsletters Rules ---
+    match /dispatched_newsletters/{dispatchId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin()
+        && isValidId(dispatchId)
+        && request.resource.data.id == dispatchId
+        && request.resource.data.subject is string
+        && request.resource.data.content is string
+        && request.resource.data.sentAt is string
+        && (request.resource.data.recipientCount is int || request.resource.data.recipientCount is number);
+      allow update, delete: if isAdmin();
     }
   }
 }

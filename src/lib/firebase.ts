@@ -14,7 +14,8 @@ import {
   addDoc,
   serverTimestamp,
   persistentLocalCache,
-  persistentMultipleTabManager
+  persistentMultipleTabManager,
+  setLogLevel
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import firebaseConfig from "../../firebase-applet-config.json";
@@ -56,19 +57,66 @@ let functions: any = null;
 
 if (isFirebaseEnabled) {
   try {
+    setLogLevel("silent");
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+    // Dynamically and safely check for browser storage availability to prevent SecurityError inside sandbox iframes
+    let isStorageAccessBlocked = false;
     try {
-      db = initializeFirestore(app, {
-        experimentalForceLongPolling: true,
-        experimentalLongPollingOptions: {
-          useFetchStreams: false,
-        } as any,
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
-      } as any, (firebaseConfig as any).firestoreDatabaseId || undefined);
+      if (typeof window !== "undefined") {
+        // Simple synchronous check for localStorage availability
+        localStorage.setItem("__test_storage_access__", "1");
+        localStorage.removeItem("__test_storage_access__");
+        
+        // Ensure indexedDB is present and properties are accessible
+        if (!window.indexedDB) {
+          isStorageAccessBlocked = true;
+        }
+      } else {
+        isStorageAccessBlocked = true;
+      }
+    } catch (e) {
+      isStorageAccessBlocked = true;
+    }
+
+    const firestoreSettings: any = {
+      experimentalForceLongPolling: true,
+      experimentalLongPollingOptions: {
+        useFetchStreams: false,
+      },
+    };
+
+    if (!isStorageAccessBlocked) {
+      try {
+        const isIframe = typeof window !== "undefined" && window.self !== window.top;
+        if (isIframe) {
+          // Inside preview/sandbox iframes, avoid persistentMultipleTabManager to prevent lock failures and BroadcastChannel blockages
+          firestoreSettings.localCache = persistentLocalCache({});
+        } else {
+          firestoreSettings.localCache = persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          });
+        }
+      } catch (cacheErr) {
+        console.warn("Firestore: Failed to prepare persistent local cache config, falling back to default cache.", cacheErr);
+      }
+    }
+
+    try {
+      db = initializeFirestore(app, firestoreSettings, (firebaseConfig as any).firestoreDatabaseId || undefined);
     } catch (e: any) {
-      db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || undefined);
+      console.warn("Failed to initialize Firestore with customized settings, retrying with minimal long polling settings:", e);
+      try {
+        db = initializeFirestore(app, {
+          experimentalForceLongPolling: true,
+          experimentalLongPollingOptions: {
+            useFetchStreams: false,
+          },
+        } as any, (firebaseConfig as any).firestoreDatabaseId || undefined);
+      } catch (innerErr: any) {
+        console.error("Critical: Could not initialize Firestore even with minimal settings:", innerErr);
+        db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || undefined);
+      }
     }
     auth = getAuth(app);
     functions = getFunctions(app);
@@ -93,8 +141,16 @@ export { db, auth, functions };
 // Structured Firestore error handler conforming to skill requirements
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const currentAuth = auth;
+  const errMessage = error instanceof Error ? error.message : String(error);
+  const errCode = error && typeof error === "object" && "code" in error ? (error as any).code : "";
+  
+  const isPermissionError = 
+    errCode === "permission-denied" || 
+    errMessage.toLowerCase().includes("permission") || 
+    errMessage.toLowerCase().includes("insufficient");
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: currentAuth?.currentUser?.uid || null,
       email: currentAuth?.currentUser?.email || null,
@@ -109,8 +165,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error("Firestore Error: ", JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  if (isPermissionError) {
+    console.error("Firestore Permission Error: ", JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    // Non-permission error (e.g. timeout, offline state, connection refused).
+    // Conforming to offline-first/resilience principles: log a warning but don't crash/throw.
+    console.warn("Firestore Non-Fatal Connection/Sync Notice (Operating in offline mode):", errMessage, "Details:", JSON.stringify(errInfo));
+  }
 }
 
 // Auth operations

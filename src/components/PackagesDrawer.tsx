@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, CheckCircle2, Clock, MapPin, Compass, Sparkles, ChevronDown, ChevronUp, AlertCircle, Calendar, Users } from "lucide-react";
+import { X, CheckCircle2, Clock, MapPin, Compass, Sparkles, ChevronDown, ChevronUp, AlertCircle, Calendar, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { TourPackage, Destination } from "../types";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -23,9 +23,69 @@ export default function PackagesDrawer({
   const { formatAmount } = useCurrency();
   const { t, language } = useLanguage();
   const [expandedBlueprint, setExpandedBlueprint] = useState<string | null>("kundalila-falls-camping-tour");
+  const [lightboxImage, setLightboxImage] = useState<{
+    url: string;
+    title: string;
+    gallery: string[];
+    currentIndex: number;
+  } | null>(null);
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const scrollSync = useScrollSync(isOpen, drawerRef);
+
+  const openLightbox = (pkgName: string, imageUrl: string, gallery: string[] | undefined) => {
+    const imagesList = gallery && gallery.length > 0 ? gallery : [imageUrl];
+    const initialIndex = imagesList.indexOf(imageUrl);
+    setLightboxImage({
+      url: imageUrl,
+      title: pkgName,
+      gallery: imagesList,
+      currentIndex: initialIndex >= 0 ? initialIndex : 0,
+    });
+  };
+
+  useEffect(() => {
+    if (lightboxImage) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.body.classList.add("lightbox-active");
+      
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setLightboxImage(null);
+        } else if (e.key === "ArrowLeft") {
+          const newIdx = (lightboxImage.currentIndex - 1 + lightboxImage.gallery.length) % lightboxImage.gallery.length;
+          setLightboxImage((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  currentIndex: newIdx,
+                  url: prev.gallery[newIdx],
+                }
+              : null
+          );
+        } else if (e.key === "ArrowRight") {
+          const newIdx = (lightboxImage.currentIndex + 1) % lightboxImage.gallery.length;
+          setLightboxImage((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  currentIndex: newIdx,
+                  url: prev.gallery[newIdx],
+                }
+              : null
+          );
+        }
+      };
+      
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.classList.remove("lightbox-active");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [lightboxImage]);
 
   if (!isOpen) return null;
 
@@ -60,6 +120,7 @@ export default function PackagesDrawer({
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-brand-medium text-brand-sand transition-colors cursor-pointer"
+              aria-label="Close signature tours catalog"
             >
               <X className="w-6 h-6" />
             </button>
@@ -96,6 +157,34 @@ export default function PackagesDrawer({
                         : "border-brand-sand-dark/40 hover:border-brand-teal"
                     }`}
                   >
+                    {/* Clickable cover image */}
+                    {associatedDest && (associatedDest.image || (associatedDest.gallery && associatedDest.gallery.length > 0)) && (
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openLightbox(
+                            pkg.name,
+                            associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image,
+                            associatedDest.gallery
+                          );
+                        }}
+                        className="relative w-full h-44 mb-4 rounded-xl overflow-hidden group/img-card border border-brand-sand-dark/20 shadow-sm cursor-zoom-in"
+                      >
+                        <img
+                          src={associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image}
+                          alt={pkg.name}
+                          className="w-full h-full object-cover transition-transform duration-750 ease-out group-hover/img-card:scale-105"
+                          loading="lazy"
+                        />
+                        {/* Small badge count of photos */}
+                        {associatedDest.gallery && associatedDest.gallery.length > 1 && (
+                          <div className="absolute bottom-3 right-3 bg-brand-dark/80 backdrop-blur-xs text-white border border-white/10 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider z-10">
+                            {associatedDest.gallery.length} PHOTOS
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-start gap-3">
                       <div>
                         <span className="text-[9px] font-mono font-bold text-brand-teal uppercase tracking-widest block">
@@ -196,8 +285,12 @@ export default function PackagesDrawer({
                       <div className="mt-4 border border-brand-teal/20 dark:border-brand-teal/40 rounded-xl overflow-hidden bg-white/40 dark:bg-slate-950/20">
                         <button
                           type="button"
-                          onClick={() => setExpandedBlueprint(expandedBlueprint === pkg.id ? null : pkg.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedBlueprint(expandedBlueprint === pkg.id ? null : pkg.id);
+                          }}
                           className="w-full flex items-center justify-between p-3 text-xs font-bold font-mono text-brand-dark dark:text-brand-gold bg-brand-teal/10 dark:bg-brand-teal/5 hover:bg-brand-teal/20 transition-all cursor-pointer"
+                          aria-label={`Toggle detailed camping blueprint for ${pkg.name}`}
                         >
                           <span className="flex items-center gap-2 text-left uppercase">
                             ⛺ {language === "fr" ? "Afficher le plan détaillé" : "Show Detailed Camping Blueprint"}
@@ -322,6 +415,7 @@ export default function PackagesDrawer({
                           ? "bg-brand-gold hover:bg-brand-gold-light text-brand-dark"
                           : "bg-brand-dark hover:bg-brand-medium text-brand-gold hover:text-white"
                       }`}
+                      aria-label={`Configure flight and book safari package ${pkg.name}`}
                     >
                       <Compass className="w-3.5 h-3.5" />
                       {language === "fr" ? "Réserver ce Forfait" : "Configure Flight & Book Now"}
@@ -341,6 +435,98 @@ export default function PackagesDrawer({
         </div>
 
       </div>
+
+      {/* Lightbox / Zoom Overlay */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black flex flex-col justify-center items-center p-4 select-none overflow-hidden"
+          onClick={() => setLightboxImage(null)}
+        >
+          {/* Exclusive, prominent floating Close button on top-right, away from images and hero elements */}
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-6 right-6 z-[10000] p-3 rounded-full bg-white/10 hover:bg-[#f97316]/20 text-white hover:text-[#f97316] transition-all cursor-pointer border border-white/10 shadow-lg hover:scale-105 active:scale-95"
+            aria-label="Close image preview"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Main image zoom container */}
+          <div 
+            className="relative max-w-4xl w-full max-h-[70vh] flex items-center justify-center group"
+            onClick={(e) => e.stopPropagation()} // Stop propagation so clicking inside doesn't close lightbox
+          >
+            {lightboxImage.gallery.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newIdx = (lightboxImage.currentIndex - 1 + lightboxImage.gallery.length) % lightboxImage.gallery.length;
+                  setLightboxImage(prev => prev ? {
+                    ...prev,
+                    currentIndex: newIdx,
+                    url: prev.gallery[newIdx]
+                  } : null);
+                }}
+                className="absolute left-4 z-50 p-3 rounded-full bg-black/70 hover:bg-black/90 hover:text-brand-gold text-white border border-white/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg"
+                aria-label="Previous Image"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.title}
+              className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl border border-white/10 transition-all duration-300"
+            />
+
+            {lightboxImage.gallery.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newIdx = (lightboxImage.currentIndex + 1) % lightboxImage.gallery.length;
+                  setLightboxImage(prev => prev ? {
+                    ...prev,
+                    currentIndex: newIdx,
+                    url: prev.gallery[newIdx]
+                  } : null);
+                }}
+                className="absolute right-4 z-50 p-3 rounded-full bg-black/70 hover:bg-black/90 hover:text-brand-gold text-white border border-white/10 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg"
+                aria-label="Next Image"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Caption & Indicator dot navigation */}
+          <div className="mt-6 flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            {lightboxImage.gallery.length > 1 && (
+              <div className="flex gap-2 bg-black/40 backdrop-blur-xs py-1.5 px-3.5 rounded-full border border-white/10">
+                {lightboxImage.gallery.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setLightboxImage(prev => prev ? {
+                        ...prev,
+                        currentIndex: index,
+                        url: prev.gallery[index]
+                      } : null);
+                    }}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      lightboxImage.currentIndex === index ? "w-6 bg-brand-gold" : "w-2 bg-white/40 hover:bg-white/60"
+                    }`}
+                    title={`View slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+            <span className="text-[10px] text-white/50 font-mono tracking-wider">
+              {language === "fr" ? "IMAGE" : "IMAGE"} {lightboxImage.currentIndex + 1} OF {lightboxImage.gallery.length}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

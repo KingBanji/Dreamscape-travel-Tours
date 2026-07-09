@@ -41,6 +41,7 @@ export default function BookingModal({
   const [phone, setPhone] = useState("");
   const [startDate, setStartDate] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
+  const [individualJoiningOthers, setIndividualJoiningOthers] = useState(false);
   const [guestsCount, setGuestsCount] = useState<number>(() => {
     const saved = localStorage.getItem("dreamscape_passport_travelers");
     const num = saved ? Number(saved) : 15;
@@ -73,6 +74,7 @@ export default function BookingModal({
       setPaymentDone(false);
       setErrorMsg("");
       setIsSubmitting(false);
+      setIndividualJoiningOthers(false);
 
       if (preSelectedPkg) {
         setSelectedDuration(preSelectedPkg.durationDays || 4);
@@ -118,12 +120,12 @@ I would like to complete my booking payment details!
 - *Safari Tour Name:* ${tourName}
 - *Duration:* ${durationStr}
 - *Preferred Date:* ${startDate}
-- *Guests:* ${travelers} Traveler(s)
+- *Guests:* ${travelers} Traveler(s)${!preSelectedPkg?.isCustom && individualJoiningOthers ? " (Individual joining others)" : ""}
 - *Total Price:* ${finalPriceVal === 0 ? "Bespoke / Custom Quote (On Request)" : formatAmount(finalPriceVal)}
 ${specialRequests.trim() ? `- *Special Requests/Dietary:* ${specialRequests.trim()}\n` : ""}
 I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide me on completing this payment manually. Thank you!`;
 
-    return `https://wa.me/260977671016?text=${encodeURIComponent(messageText)}`;
+    return `https://wa.me/260975222136?text=${encodeURIComponent(messageText)}`;
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -153,7 +155,8 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
         specialRequests,
         paymentSimulated: false,
         tourName: preSelectedPkg?.isCustom ? (preSelectedPkg ? preSelectedPkg.name : "Victoria Falls Explorer") : currentPkgName,
-        paymentMethod: "whatsapp"
+        paymentMethod: "whatsapp",
+        individualJoiningOthers: !preSelectedPkg?.isCustom && individualJoiningOthers
       });
       setIsSubmitting(false);
       setPaymentDone(true);
@@ -171,7 +174,11 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
               <span className="text-[10px] font-mono uppercase tracking-widest text-brand-teal font-extrabold bg-brand-medium py-1 px-3 rounded-full">
                 Selected Adventure
               </span>
-              <button onClick={onClose} className="md:hidden text-brand-sand hover:text-brand-gold">
+              <button 
+                onClick={onClose} 
+                className="md:hidden text-brand-sand hover:text-brand-gold"
+                aria-label="Close summary overlay"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -236,7 +243,11 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
             <h4 className="font-serif text-lg font-bold text-brand-dark uppercase tracking-tight">
               {paymentDone ? "Booking Secured!" : "Complete Booking"}
             </h4>
-            <button onClick={onClose} className="hidden md:block text-brand-dark/50 hover:text-brand-dark">
+            <button 
+              onClick={onClose} 
+              className="hidden md:block text-brand-dark/50 hover:text-brand-dark"
+              aria-label="Close booking modal"
+            >
               <X className="w-5.5 h-5.5" />
             </button>
           </div>
@@ -466,12 +477,12 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                   {!preSelectedPkg?.isCustom && (
                     <div>
                       <label className="block text-[10px] font-bold text-brand-dark/75 uppercase tracking-wide mb-1">
-                        Travelers Count (15 - 33)
+                        {individualJoiningOthers ? "Travelers Count (1 - 33)" : "Travelers Count (15 - 33)"}
                       </label>
                       <input
                         type="number"
-                        min="15"
-                        max="33"
+                        min={individualJoiningOthers ? 1 : 15}
+                        max={33}
                         value={guestsCount}
                         onChange={(e) => {
                           const val = e.target.value === "" ? "" : Number(e.target.value);
@@ -479,25 +490,54 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                         }}
                         onBlur={() => {
                           if (guestsCount === "" || isNaN(guestsCount)) {
+                            setGuestsCount(individualJoiningOthers ? 1 : 15);
+                          } else if (!individualJoiningOthers && guestsCount < 15) {
                             setGuestsCount(15);
-                          } else if (guestsCount < 15) {
-                            setGuestsCount(15);
+                          } else if (individualJoiningOthers && guestsCount < 1) {
+                            setGuestsCount(1);
                           } else if (guestsCount > 33) {
                             setGuestsCount(33);
                           }
                         }}
                         className={`w-full bg-brand-sand border text-brand-dark text-sm rounded-xl p-2.5 focus:outline-none transition-all ${
-                          (guestsCount !== "" && (guestsCount < 15 || guestsCount > 33))
+                          (guestsCount !== "" && (
+                            (!individualJoiningOthers && (guestsCount < 15 || guestsCount > 33)) ||
+                            (individualJoiningOthers && (guestsCount < 1 || guestsCount > 33))
+                          ))
                             ? "border-red-500 bg-red-50 text-red-900 focus:ring-1 focus:ring-red-500 animate-pulse font-bold"
                             : "border-brand-sand-dark focus:ring-1 focus:ring-brand-teal"
                         }`}
-                        placeholder="Enter travelers (15-33)"
+                        placeholder={individualJoiningOthers ? "Enter travelers (1-33)" : "Enter travelers (15-33)"}
                       />
-                      {guestsCount !== "" && (guestsCount < 15 || guestsCount > 33) && (
+                      {guestsCount !== "" && (
+                        (!individualJoiningOthers && (guestsCount < 15 || guestsCount > 33)) ||
+                        (individualJoiningOthers && (guestsCount < 1 || guestsCount > 33))
+                      ) && (
                         <p className="text-[10px] text-red-600 font-bold font-sans mt-1.5 ml-1 animate-pulse">
-                          ⚠️ Group Booking size must be between 15 and 33.
+                          ⚠️ {individualJoiningOthers ? "Travelers count must be between 1 and 33." : "Group Booking size must be between 15 and 33."}
                         </p>
                       )}
+
+                      <div className="flex items-center gap-2 mt-2.5 bg-brand-teal/5 p-2 rounded-lg border border-brand-teal/15">
+                        <input
+                          type="checkbox"
+                          id="individual-joining-others"
+                          checked={individualJoiningOthers}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setIndividualJoiningOthers(checked);
+                            if (checked) {
+                              setGuestsCount(1);
+                            } else {
+                              setGuestsCount(15);
+                            }
+                          }}
+                          className="rounded text-brand-teal focus:ring-brand-teal accent-brand-teal cursor-pointer h-4 w-4 shrink-0"
+                        />
+                        <label htmlFor="individual-joining-others" className="text-[10.5px] font-semibold text-brand-dark/90 cursor-pointer select-none leading-tight">
+                          {language === "fr" ? "Individuel rejoignant d'autres groupes (Moins de 15 personnes)" : "Join an existing group / Individual joining others"}
+                        </label>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -527,15 +567,15 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
 
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">MTN MoMo Transfer</span>
-                  <span className="font-mono text-[#128C7E] font-bold">+260 977 671 016</span>
+                  <span className="font-mono text-[#128C7E] font-bold">+260 975 222 136</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">Airtel Money Pay</span>
-                  <span className="font-mono text-[#128C7E] font-bold">+260 977 671 016</span>
+                  <span className="font-mono text-[#128C7E] font-bold">+260 975 222 136</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">Zanaco Transfer</span>
-                  <span className="font-mono text-[#128C7E] font-bold">A/C: 100260977671016</span>
+                  <span className="font-mono text-[#128C7E] font-bold">A/C: 100260975222136</span>
                 </div>
                 <div className="p-2.5 bg-white border border-brand-teal/20 rounded-xl text-brand-dark space-y-1">
                   <span className="font-bold text-[10px] block uppercase text-emerald-700 tracking-wider">Your Contact Dispatch Data</span>
@@ -549,7 +589,7 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                   </div>
                 </div>
                 <p className="text-[10px] text-brand-dark/65 leading-tight mt-1">
-                  Your request saves to our secure database immediately in real-time. On success, tap the green <strong>WhatsApp Dispatch</strong> button to complete the transfer directly with Online Agent Assistant <strong>Banji Luyando</strong> at <strong>+260 977 671 016</strong>.
+                  Your request saves to our secure database immediately in real-time. On success, tap the green <strong>WhatsApp Dispatch</strong> button to complete the transfer directly with Online Agent Assistant <strong>Banji Luyando</strong> at <strong>+260 975 222 136</strong>.
                 </p>
               </div>
  
@@ -558,6 +598,7 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                  type="submit"
                  disabled={isSubmitting}
                  className="w-full font-bold py-3 px-4 rounded-xl text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-emerald-500/10 shadow-lg border-b-[3px] border-[#1b9d4c]"
+                 aria-label="Confirm booking and dispatch to WhatsApp operator"
                >
                  {isSubmitting ? (
                    <span className="inline-block border-2 border-brand-gold/30 border-t-brand-gold w-4 h-4 rounded-full animate-spin" />
@@ -615,6 +656,7 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
                <button
                  onClick={onClose}
                  className="mt-6 px-6 py-2 bg-brand-dark hover:bg-brand-medium text-brand-gold font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm"
+                 aria-label="Close booking completion dashboard and return to explorer home"
                >
                  Close Dashboard
                </button>

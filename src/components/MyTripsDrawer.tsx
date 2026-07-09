@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Destination, Booking } from "../types";
 import { 
   X, Calendar, Users, ClipboardCheck, Trash2, Printer, Compass, 
   Sparkles, Receipt, CheckSquare, Square, Sun, CloudRain, Droplets, Wind, 
   ShieldAlert, HelpCircle, ChevronDown, ChevronUp, CheckCircle, Briefcase,
-  Award, Trophy, Zap, Shield, Gift
+  Award, Trophy, Zap, Shield, Gift, Ticket
 } from "lucide-react";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useScrollSync } from "../hooks/useScrollSync";
 import { useAuthAndData } from "../lib/FirebaseContext";
+import SafariCalendar from "./SafariCalendar";
 
 interface ChecklistItem {
   id: string;
@@ -242,6 +244,7 @@ export default function MyTripsDrawer({
 
   const [expandedChecklists, setExpandedChecklists] = useState<Record<string, boolean>>({});
   const [checkedItems, setCheckedItems] = useState<Record<string, Record<string, boolean>>>({});
+  const [selectedPassBooking, setSelectedPassBooking] = useState<Booking | null>(null);
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const scrollSync = useScrollSync(isOpen, drawerRef);
@@ -290,7 +293,11 @@ export default function MyTripsDrawer({
                 Your Wilderness Logs
               </span>
             </div>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-brand-medium text-brand-sand transition-colors cursor-pointer">
+            <button 
+              onClick={onClose} 
+              className="p-1 rounded-lg hover:bg-brand-medium text-brand-sand transition-colors cursor-pointer"
+              aria-label="Close My Trips wilderness logs"
+            >
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -385,6 +392,7 @@ export default function MyTripsDrawer({
                   type="button"
                   onClick={() => setShowBenefits(!showBenefits)}
                   className="w-full flex items-center justify-between text-left text-[10px] font-bold text-brand-dark/70 dark:text-slate-300 hover:text-brand-teal dark:hover:text-brand-teal transition-colors cursor-pointer select-none"
+                  aria-label="Toggle explorer passport club active privileges and perks overview"
                 >
                   <span className="flex items-center gap-1.5 font-mono uppercase tracking-wider">
                     <Gift className="w-3.5 h-3.5 text-brand-gold animate-bounce" /> Active Club Privileges
@@ -428,11 +436,13 @@ export default function MyTripsDrawer({
                   onClick={onClose}
                   className="mt-5 inline-block px-4 py-1.5 bg-brand-dark text-brand-gold rounded-full text-xs font-bold transition-all"
                 >
-                  Go to AI Planner
+                  Go to Safari Planner
                 </a>
               </div>
             ) : (
               <div className="space-y-5">
+                <SafariCalendar bookings={bookings} destinations={destinations} />
+                
                 {bookings.map((book) => {
                   const targetDest = destinations.find((d) => d.id === book.destinationId);
                   const destId = book.destinationId || "";
@@ -488,6 +498,7 @@ export default function MyTripsDrawer({
                           onClick={() => toggleChecklist(book.id)}
                           type="button"
                           className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-neutral-50/50 transition-colors text-[11px] font-bold text-brand-dark dark:text-slate-200 cursor-pointer select-none"
+                          aria-label={`Toggle climate packing checklist for ${book.packageId || targetDest?.name.split(" (")[0] || 'Safari'}`}
                         >
                           <div className="flex items-center gap-1.5">
                             <Briefcase className="w-3.5 h-3.5 text-brand-teal" />
@@ -579,16 +590,27 @@ export default function MyTripsDrawer({
                       </div>
 
                       {/* Printable receipt actions lists */}
-                      <div className="mt-4 pt-3.5 border-t border-brand-sand-dark flex justify-between items-center gap-2">
-                        <button
-                          onClick={() => window.print()}
-                          className="px-3 py-1.5 bg-white hover:bg-neutral-100 rounded-lg border border-brand-sand-dark text-[10px] font-bold uppercase font-mono tracking-wider flex items-center gap-1 transition-all cursor-pointer text-brand-dark"
-                        >
-                          <Receipt className="w-3.5 h-3.5 text-brand-teal" /> Receipt
-                        </button>
+                      <div className="mt-4 pt-3.5 border-t border-brand-sand-dark flex justify-between items-center gap-1.5 flex-wrap">
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => window.print()}
+                            className="px-2.5 py-1.5 bg-white hover:bg-neutral-100 rounded-lg border border-brand-sand-dark text-[10px] font-bold uppercase font-mono tracking-wider flex items-center gap-1 transition-all cursor-pointer text-brand-dark"
+                            aria-label={`Print reservation receipt for ${book.packageId || targetDest?.name.split(" (")[0] || 'Safari'}`}
+                          >
+                            <Receipt className="w-3 h-3 text-brand-teal" /> Receipt
+                          </button>
+
+                          <button
+                            onClick={() => setSelectedPassBooking(book)}
+                            className="px-2.5 py-1.5 bg-brand-teal/10 hover:bg-brand-teal/20 text-brand-teal rounded-lg border border-brand-teal/30 text-[10px] font-bold uppercase font-mono tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+                            aria-label={`View Liquid Pass for ${book.packageId || targetDest?.name.split(" (")[0] || 'Safari'}`}
+                          >
+                            <Ticket className="w-3 h-3" /> Liquid Pass
+                          </button>
+                        </div>
                         {book.paymentMethod === "whatsapp" && (
                           <a
-                            href={`https://wa.me/260977671016?text=${encodeURIComponent(
+                            href={`https://wa.me/260975222136?text=${encodeURIComponent(
                               `Hello Online Agent Assistant Banji Luyando, \n\nI would like to confirm my payment for safari booking reference (${book.tourName || "Victoria Falls Tour"}). \n\n- Name: ${book.customerName}\n- Contact: ${book.customerPhone}\n- Date: ${book.preferredStartDate}\n- Guests: ${book.guestsCount}\n- Amount: ${formatAmount(book.totalPrice)}\n\nPlease verify my Mobile Money payment. Thank you!`
                             )}`}
                             target="_blank"
@@ -601,6 +623,7 @@ export default function MyTripsDrawer({
                         <button
                           onClick={() => onCancelBooking(book.id)}
                           className="p-1 px-2.5 sm:px-3 text-red-600 hover:bg-red-50 text-[10px] font-medium rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                          aria-label={`Void and cancel reservation ticket for ${book.packageId || targetDest?.name.split(" (")[0] || 'Safari'}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Void Ticket
                         </button>
@@ -624,6 +647,114 @@ export default function MyTripsDrawer({
         </div>
 
       </div>
+
+      {/* Glassmorphism Safari Pass Modal Overlay */}
+      <AnimatePresence>
+        {selectedPassBooking && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            {/* Inner relative container to hold close button and glass card */}
+            <motion.div
+              initial={{ scale: 0.9, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 15 }}
+              className="relative"
+            >
+              {/* Close button on top right of the modal frame */}
+              <button
+                onClick={() => setSelectedPassBooking(null)}
+                className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+                aria-label="Close Safari Pass"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Glassmorphism Card styled with custom styling parameters */}
+              <div className="glassmorphism-card w-[420px] h-[280px] max-w-full rounded-2xl border border-white/25 flex flex-col justify-between p-8 text-white relative overflow-hidden select-none">
+                {/* Decorative glowing refraction spheres inside the glass */}
+                <div className="absolute top-0 right-0 w-36 h-36 bg-brand-teal/25 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-8 -left-8 w-44 h-44 bg-brand-gold/20 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Top Header Row of the card */}
+                <div className="flex justify-between items-start z-10">
+                  <div className="flex items-center gap-2">
+                    <img src="/images/logo dreamscape-1.png" alt="Dreamscape Tours Logo" className="w-9 h-9 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <div>
+                      <h2 className="text-[12px] font-serif font-black tracking-widest uppercase text-white/95">DREAMSCAPE</h2>
+                      <p className="text-[7px] font-mono tracking-[4px] text-brand-gold font-black uppercase">EXPEDITION PASS</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8px] font-mono uppercase bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 font-extrabold tracking-widest">
+                      {selectedPassBooking.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Main Card Grid Information */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 my-2 z-10">
+                  <div>
+                    <span className="text-[7px] font-mono uppercase text-white/60 tracking-wider block">DESTINATION</span>
+                    <span className="text-[11px] font-serif font-bold uppercase tracking-tight text-white line-clamp-1">
+                      {selectedPassBooking.packageId || destinations.find(d => d.id === selectedPassBooking.destinationId)?.name.split(" (")[0] || "Zambia Expedition"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[7px] font-mono uppercase text-white/60 tracking-wider block">EXPLORER</span>
+                    <span className="text-[11px] font-serif font-bold uppercase tracking-tight text-white line-clamp-1">
+                      {selectedPassBooking.customerName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[7px] font-mono uppercase text-white/60 tracking-wider block">DEPARTURE</span>
+                    <span className="text-[11px] font-mono font-bold tracking-tight text-brand-gold">
+                      {selectedPassBooking.preferredStartDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[7px] font-mono uppercase text-white/60 tracking-wider block">PASSENGERS</span>
+                    <span className="text-[11px] font-mono font-bold tracking-tight text-white">
+                      {selectedPassBooking.guestsCount} ADULT{selectedPassBooking.guestsCount > 1 ? 'S' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Footer with barcodes & reference details */}
+                <div className="flex justify-between items-end border-t border-white/10 pt-3 mt-1 z-10">
+                  <div className="space-y-0.5">
+                    <span className="text-[6px] font-mono text-white/50 block">BOOKING REF</span>
+                    <span className="text-[9px] font-mono font-bold tracking-wider text-white/90 uppercase">
+                      DS-{selectedPassBooking.id.substring(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  {/* Digital barcode visual */}
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex gap-0.5 items-end h-5 bg-white/10 p-1 rounded">
+                      {[1, 3, 1, 2, 4, 1, 3, 2, 1, 3, 1, 4, 1, 2, 1, 3].map((w, idx) => (
+                        <div key={idx} className="bg-white/80" style={{ width: `${w}px`, height: "100%" }} />
+                      ))}
+                    </div>
+                    <span className="text-[5px] font-mono text-white/40 tracking-[3px]">
+                      *DS{selectedPassBooking.id.substring(0, 6).toUpperCase()}*
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subtitle helper */}
+              <p className="text-center text-[10px] text-white/85 font-mono uppercase tracking-[6px] mt-4 animate-pulse">
+                💎 PREMIUM EXPEDITION MEMBER 💎
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

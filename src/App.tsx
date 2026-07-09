@@ -9,9 +9,10 @@ import DestinationList from "./components/DestinationList";
 import InteractiveItineraryBuilder from "./components/InteractiveItineraryBuilder";
 import ReviewSection from "./components/ReviewSection";
 import FAQSection from "./components/FAQSection";
+import TeamSection from "./components/TeamSection";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
-import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users } from "lucide-react";
+import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users, Heart } from "lucide-react";
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
 // @ts-ignore
@@ -138,12 +139,53 @@ export default function App() {
 
 
 
+  const [isSpotlightSaved, setIsSpotlightSaved] = useState<boolean>(() => {
+    return localStorage.getItem("dreamscape_spotlight_saved") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dreamscape_spotlight_saved", String(isSpotlightSaved));
+  }, [isSpotlightSaved]);
+
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [attractionsDrawerOpen, setAttractionsDrawerOpen] = useState(false);
   const [musicTourRegisterOpen, setMusicTourRegisterOpen] = useState(false);
   const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
   const [isSpotlightExpanded, setIsSpotlightExpanded] = useState(false);
+  const [spotlightLightboxOpen, setSpotlightLightboxOpen] = useState(false);
+  const [spotlightSlideIndex, setSpotlightSlideIndex] = useState(0);
+
+  const spotlightSlides = [
+    {
+      url: "/images/active spotlight 2.jpg",
+      title: language === "fr" ? "Retraite des Chutes de Shantumbu" : "Shantumbu Falls Retreat",
+      description: language === "fr"
+        ? "Plongez dans des piscines de roche pure et des sentiers forestiers tranquilles à l'est de Lusaka."
+        : "Immerse in pure rock pools and quiet forest walking trails nestled in the scenic hills east of Lusaka.",
+    },
+    {
+      url: "/images/shantumbufalls1-1.jpg",
+      title: language === "fr" ? "Randonnée dans l'Escarpement Vert" : "Lush Green Escarpment Hiking",
+      description: language === "fr"
+        ? "Suivez des sentiers escarpés anciens et observez des vues panoramiques sur la brousse environnante."
+        : "Follow ancient steep-ridged forest trails and catch panoramic vistas of the pristine surrounding bushveld.",
+    },
+    {
+      url: "/images/shantumbufalls2-1.jpg",
+      title: language === "fr" ? "Pique-nique Éco-Gourmand Privé" : "Private Eco-Gourmet Picnic Spot",
+      description: language === "fr"
+        ? "Savourez un panier pique-nique frais préparé par nos guides chefs locaux au bord de l'eau."
+        : "Relish a fresh gourmet picnic hamper prepared by our local guide chefs directly beside serene running streams.",
+    },
+    {
+      url: "/images/shantumbufalls3.jpeg",
+      title: language === "fr" ? "Piscines d'Eau de Source Naturelle" : "Fresh Natural Spring Pools",
+      description: language === "fr"
+        ? "Baignez-vous dans des piscines de roche de source naturelle fraîches, loin de la chaleur de la ville."
+        : "Swim in cooling, crystal clear natural spring rock basins completely sheltered away from the city's hustle.",
+    }
+  ];
   const [benefitsModalOpen, setBenefitsModalOpen] = useState(false);
   const [isBrochureDownloading, setIsBrochureDownloading] = useState(false);
   const [funGroupToursModalOpen, setFunGroupToursModalOpen] = useState(false);
@@ -367,7 +409,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
     <div
       className={`relative min-h-screen selection:bg-brand-gold selection:text-brand-dark flex flex-col justify-between overflow-hidden transition-all duration-1000 ${
         theme === "dark"
-          ? "dark bg-[#050b14] text-slate-100"
+          ? "dark bg-[#0a192f] text-slate-100"
           : "bg-brand-sand text-brand-dark"
       }`}
     >
@@ -412,20 +454,20 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
         {/* Custom Membership / Passport Club Welcoming Banner right above destinations */}
         {!user && (
-          <section className="relative max-w-4xl mx-auto px-4 sm:px-6 my-16 relative z-30">
-            <div className="relative overflow-hidden rounded-3xl bg-brand-dark/95 border-2 border-[#f97316]/30 p-8 sm:p-12 shadow-2xl backdrop-blur-md">
+          <section id="passport-club-section" className="relative max-w-2xl mx-auto px-4 sm:px-6 my-10 relative z-30">
+            <div className="relative overflow-hidden rounded-2xl bg-brand-dark/95 border-2 border-[#f97316]/30 p-6 sm:p-8 shadow-xl backdrop-blur-md">
               {/* Decorative background visual ambient colors matching the logo */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#F97316]/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#38bdf8]/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="relative z-10 max-w-2xl text-left">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/10 border border-[#f97316]/25 text-[10px] font-mono uppercase tracking-[0.2em] text-[#f97316] font-bold mb-4 animate-pulse">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/10 border border-[#f97316]/25 text-[10px] font-mono uppercase tracking-[0.2em] text-[#f97316] font-bold mb-3.5 animate-pulse">
                   ✦ Dreamscape Passport Club ✦
                 </span>
-                <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white uppercase tracking-tight leading-tight">
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-white uppercase tracking-tight leading-tight">
                   {language === "fr" ? "Rejoignez l'Expédition d'Élite" : "Embark with the Explorer Elite"}
                 </h2>
-                <p className="text-brand-sand/85 text-xs sm:text-sm mt-4 leading-relaxed font-sans">
+                <p className="text-brand-sand/85 text-xs mt-3 leading-relaxed font-sans">
                   {language === "fr"
                     ? "Inscrivez-vous sur Dreamscape Tours pour enregistrer vos itinéraires personnalisés, suivre vos empreintes d'animaux sauvages, accumuler des jetons de guide et soumettre des dépôts de safari directs via Mobile Money."
                     : "Create a Dreamscape Traveler profile to sync bespoke safari itineraries, track wildlife footsteps, earn explorer badges, and authorize instant direct Mobile Money tour deposits securely."}
@@ -471,10 +513,10 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
                 {/* The precise HTML segment requested by the user */}
                 <div className="flex flex-wrap gap-4 mt-6">
-                  <a href="/signup" id="passport-club-signup-btn" className="bg-orange-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
+                  <a href="/signup" id="passport-club-signup-btn" className="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
                     Sign Up
                   </a>
-                  <a href="/login" id="passport-club-login-btn" className="border border-yellow-500 text-yellow-500 px-6 py-3 rounded-lg hover:bg-yellow-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
+                  <a href="/login" id="passport-club-login-btn" className="border border-orange-500 text-orange-500 px-6 py-3 rounded-lg hover:bg-orange-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
                     Log In
                   </a>
                 </div>
@@ -535,7 +577,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         )}
 
         {/* Spotlight Experience Banner featuring the exact card layout from user */}
-        <section className="relative max-w-4xl mx-auto px-4 sm:px-6 my-16 z-30">
+        <section id="spotlight-section" className="relative max-w-4xl mx-auto px-4 sm:px-6 my-16 z-30">
           <div className="text-center mb-6">
             <span className="text-xs font-mono uppercase tracking-widest text-brand-teal font-extrabold block mb-1">
               {language === "fr" ? "★ VEDETTE ACTIVE ★" : "★ ACTIVE SPOTLIGHT ★"}
@@ -546,11 +588,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           </div>
           
           <div className="flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, y: 45 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+            <div
               className={`relative w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl border border-white/10 group bg-slate-900 transition-all duration-500 ease-in-out ${
                 isSpotlightExpanded ? "h-[760px]" : "h-[560px]"
               }`}
@@ -559,7 +597,12 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
               <img 
                 src="/images/active spotlight 2.jpg" 
                 alt="Active Spotlight Experience" 
-                className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-700 ease-out cursor-pointer hover:brightness-105"
+                onClick={() => {
+                  setSpotlightLightboxOpen(true);
+                  setSpotlightSlideIndex(0);
+                }}
+                title={language === "fr" ? "Cliquez pour ouvrir la galerie de l'oasis cachée" : "Click to view hidden oasis gallery"}
                 referrerPolicy="no-referrer"
               />
 
@@ -578,9 +621,28 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                   </svg>
                 </button>
-                <span className="px-3 py-1 text-xs font-semibold tracking-wider text-cyan-200 uppercase bg-cyan-950/60 backdrop-blur-md rounded-full border border-cyan-500/30">
-                  {language === "fr" ? "Aventure" : "Adventure"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 text-xs font-semibold tracking-wider text-cyan-200 uppercase bg-cyan-950/60 backdrop-blur-md rounded-full border border-cyan-500/30">
+                    {language === "fr" ? "Aventure" : "Adventure"}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSpotlightSaved(prev => !prev);
+                    }}
+                    className="p-2 rounded-full bg-black/30 backdrop-blur-md text-white hover:bg-black/50 transition border border-white/10 cursor-pointer flex items-center justify-center group/heart"
+                    title={isSpotlightSaved ? (language === "fr" ? "Retirer des favoris" : "Remove from saved") : (language === "fr" ? "Ajouter aux favoris" : "Save experience")}
+                    aria-label={isSpotlightSaved ? "Remove from saved" : "Save experience"}
+                  >
+                    <Heart 
+                      className={`w-4 h-4 transition-all duration-300 ${
+                        isSpotlightSaved 
+                          ? "fill-red-500 text-red-500 scale-110" 
+                          : "text-white group-hover/heart:text-red-400 group-hover/heart:scale-110"
+                      }`} 
+                    />
+                  </button>
+                </div>
               </div>
 
               <div className="absolute bottom-4 inset-x-4 p-5 rounded-2xl bg-white/[0.07] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col gap-3">
@@ -671,8 +733,149 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
+
+          {/* Fully Interactive Lightbox Carousel with Hidden Spotlight Details Section */}
+          <AnimatePresence>
+            {spotlightLightboxOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col justify-between items-center py-6 px-4 select-none overflow-hidden"
+                onClick={() => setSpotlightLightboxOpen(false)}
+              >
+                {/* Top bar with brand and Close button */}
+                <div className="w-full max-w-6xl flex justify-between items-center z-50 px-4">
+                  <div className="flex flex-col text-left">
+                    <span className="text-orange-500 text-[10px] font-mono uppercase tracking-[0.25em] font-extrabold animate-pulse">
+                      ✦ {language === "fr" ? "DÉCOUVERTE CHUTES SHANTUMBU" : "SHANTUMBU FALLS DISCOVERY"} ✦
+                    </span>
+                    <span className="text-white font-serif text-sm sm:text-base font-bold uppercase tracking-tight">
+                      Active Spotlight Carousel
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSpotlightLightboxOpen(false)}
+                    className="p-3 rounded-full bg-white/10 hover:bg-orange-500/20 text-white hover:text-orange-500 transition-all cursor-pointer border border-white/10 shadow-lg hover:scale-105 active:scale-95"
+                    aria-label="Close Spotlight Carousel"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Main Carousel Slider */}
+                <div className="relative w-full max-w-5xl flex-1 flex items-center justify-center my-4">
+                  {/* Previous Arrow */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSpotlightSlideIndex((prev) => (prev - 1 + spotlightSlides.length) % spotlightSlides.length);
+                    }}
+                    className="absolute left-2 sm:left-4 z-50 p-3 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/10 hover:text-brand-gold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xl"
+                    aria-label="Previous Slide"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+
+                  {/* Slide Container */}
+                  <div 
+                    className="relative w-full h-[55vh] md:h-[60vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={spotlightSlideIndex}
+                        src={spotlightSlides[spotlightSlideIndex].url}
+                        alt={spotlightSlides[spotlightSlideIndex].title}
+                        referrerPolicy="no-referrer"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.02 }}
+                        transition={{ duration: 0.4 }}
+                        className="w-full h-full object-cover"
+                      />
+                    </AnimatePresence>
+
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+                  </div>
+
+                  {/* Next Arrow */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSpotlightSlideIndex((prev) => (prev + 1) % spotlightSlides.length);
+                    }}
+                    className="absolute right-2 sm:right-4 z-50 p-3 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/10 hover:text-brand-gold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xl"
+                    aria-label="Next Slide"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Bottom Card (The Spotlight Hidden Hero overlay) */}
+                <div 
+                  className="w-full max-w-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 p-6 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-4 z-40 relative -mt-16 sm:-mt-20 mx-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div>
+                    <span className="inline-block px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/35 text-[9px] font-mono uppercase tracking-[0.22em] text-orange-500 font-extrabold mb-2 animate-pulse">
+                      {language === "fr" ? "✦ AVENTURE LOCALE D'ÉLITE ✦" : "✦ ACTIVE SPOTLIGHT EXPERIENCE ✦"}
+                    </span>
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-md">
+                      {spotlightSlides[spotlightSlideIndex].title}
+                    </h3>
+                    <p className="text-brand-sand/85 text-xs sm:text-sm mt-3 leading-relaxed max-w-lg font-sans">
+                      {spotlightSlides[spotlightSlideIndex].description}
+                    </p>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-3 w-full sm:w-auto mt-1">
+                    <button
+                      onClick={() => {
+                        setSpotlightLightboxOpen(false);
+                        const dest = DESTINATIONS.find(d => d.id === "shantumbu-falls");
+                        if (dest) handleSelectDirectDestination(dest);
+                      }}
+                      className="flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:brightness-110 active:scale-95 text-white font-bold text-xs font-mono uppercase tracking-widest rounded-xl transition-all cursor-pointer text-center shadow-lg shadow-orange-500/20"
+                    >
+                      {language === "fr" ? "Réserver l'Expérience" : "Reserve Experience"}
+                    </button>
+                    <button
+                      onClick={() => setSpotlightLightboxOpen(false)}
+                      className="flex-1 sm:flex-initial px-6 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold text-xs font-mono uppercase tracking-widest rounded-xl transition-all cursor-pointer text-center border border-white/10"
+                    >
+                      {language === "fr" ? "Fermer" : "Close Gallery"}
+                    </button>
+                  </div>
+
+                  {/* Dots Indicator */}
+                  <div className="flex gap-2.5 mt-2">
+                    {spotlightSlides.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSpotlightSlideIndex(index)}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          spotlightSlideIndex === index ? "w-6 bg-brand-gold" : "w-1.5 bg-white/40 hover:bg-white/60"
+                        }`}
+                        title={`Go to slide ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
 
         {/* 2. EXPLORE & BOOK — destinations then packages, one continuous flow */}
@@ -690,6 +893,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           preSelectedDestinationId={plannerDestinationId}
           onBookCustomTour={handleLaunchCustomPlannerCheckout}
         />
+
 
         {/* 4. TRUST — reviews and FAQ merged into one reassurance zone */}
         <ReviewSection
@@ -733,6 +937,8 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
             </a>
           </div>
         </div>
+
+        <TeamSection />
 
         <FAQSection faqs={FAQS} />
       </main>
@@ -859,14 +1065,14 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         />
       </Suspense>
  
-       {/* Floating Bottom Left Action Bubbles for AI Chat & WhatsApp support */}
+       {/* Floating Bottom Left Action Bubbles for Safari Advisor Chat & WhatsApp support */}
        <div className="fixed bottom-6 left-6 z-40 flex flex-col gap-3.5 select-none sm:bottom-8 sm:left-8">
          <button
            onClick={() => setChatbotOpen(true)}
            className="w-13 h-13 rounded-full bg-brand-dark/95 backdrop-blur-md text-brand-teal hover:text-white flex items-center justify-center shadow-3xl hover:shadow-brand-teal/20 transition-all duration-300 hover:scale-110 border border-brand-teal/40 cursor-pointer active:scale-95"
-           title="Open AI Safari Advisor"
+           title="Open Safari Advisor"
          >
-           <span className="text-xl">🤖</span>
+           <span className="text-xl">🧭</span>
          </button>
          <button
            onClick={() => setWhatsappOpen(true)}
@@ -1111,7 +1317,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                     setAppAuthModalTab("signup");
                     setAppAuthModalOpen(true);
                   }}
-                  className="px-6 py-2.5 bg-orange-500 hover:bg-yellow-600 text-black font-semibold rounded-xl text-xs sm:text-sm tracking-wide transition-all cursor-pointer transform active:scale-95 duration-200 shadow-md animate-pulse"
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-xl text-xs sm:text-sm tracking-wide transition-all cursor-pointer transform active:scale-95 duration-200 shadow-md animate-pulse"
                 >
                   Join Passport Club Now
                 </button>

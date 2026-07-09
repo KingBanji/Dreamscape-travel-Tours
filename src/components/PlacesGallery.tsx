@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Image as ImageIcon, 
   X, 
@@ -10,7 +10,6 @@ import {
   MapPin, 
   Heart,
   Eye,
-  Maximize2,
   Instagram,
   MessageCircle,
   Share2,
@@ -185,6 +184,31 @@ export default function PlacesGallery() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rouletteHistory, setRouletteHistory] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (activeItem) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.body.classList.add("lightbox-active");
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setActiveItem(null);
+        } else if (e.key === "ArrowLeft") {
+          setActiveSlideIndex((prev) => (prev - 1 + activeItem.images.length) % activeItem.images.length);
+        } else if (e.key === "ArrowRight") {
+          setActiveSlideIndex((prev) => (prev + 1) % activeItem.images.length);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.classList.remove("lightbox-active");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [activeItem]);
+
   const handleSpinRoulette = () => {
     if (isSpinning) return;
     setIsSpinning(true);
@@ -348,7 +372,10 @@ export default function PlacesGallery() {
                         className="group bg-white rounded-3xl overflow-hidden border border-brand-sand-dark shadow-sm hover:shadow-md transition-all flex flex-col h-full"
                       >
                         {/* Photo container */}
-                        <div className="relative aspect-video overflow-hidden bg-brand-dark">
+                        <div 
+                          onClick={() => openLightbox(item)}
+                          className="relative aspect-video overflow-hidden bg-brand-dark cursor-zoom-in"
+                        >
                           <img
                             src={item.mainImage}
                             alt={item.title}
@@ -375,9 +402,12 @@ export default function PlacesGallery() {
                           )}
 
                           <button
-                            type="button; button"
-                            onClick={(e) => handleLike(item.id, e)}
-                            className={`absolute top-4 right-4 p-2 rounded-xl backdrop-blur-md transition-all cursor-pointer ${
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLike(item.id, e);
+                            }}
+                            className={`absolute top-4 right-4 p-2 rounded-xl backdrop-blur-md transition-all cursor-pointer z-20 ${
                               isLiked 
                                 ? "bg-red-500 text-white" 
                                 : "bg-brand-dark/40 text-white/90 hover:bg-brand-dark/70"
@@ -420,7 +450,7 @@ export default function PlacesGallery() {
                               onClick={() => openLightbox(item)}
                               className="px-3.5 py-1.5 bg-brand-sand hover:bg-brand-sand-dark hover:text-brand-dark text-brand-dark font-bold text-[10px] uppercase tracking-wider rounded-lg border border-brand-sand-dark transition-all flex items-center gap-1.5 cursor-pointer"
                             >
-                              <Maximize2 className="w-3.5 h-3.5" /> Explore Prints
+                              Explore Prints
                             </button>
                           </div>
                         </div>
@@ -553,7 +583,7 @@ export default function PlacesGallery() {
                       className={`flex-1 font-black text-xs uppercase tracking-wider py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg border cursor-pointer ${
                         isSpinning
                           ? "bg-slate-800 text-slate-500 border-slate-700 pointer-events-none"
-                          : "bg-gradient-to-r from-brand-gold to-yellow-500 hover:from-yellow-500 hover:to-brand-gold text-slate-950 border-brand-gold/40 hover:scale-102 active:scale-98 shadow-brand-gold/15"
+                          : "bg-gradient-to-r from-brand-gold to-orange-500 hover:from-orange-500 hover:to-brand-gold text-slate-950 border-brand-gold/40 hover:scale-102 active:scale-98 shadow-brand-gold/15"
                       }`}
                     >
                       <RotateCcw className={`w-4 h-4 ${isSpinning ? "animate-spin" : ""}`} />
@@ -582,13 +612,23 @@ export default function PlacesGallery() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-brand-dark/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 sm:p-6"
+              className="fixed inset-0 bg-black z-[9999] flex flex-col justify-center items-center p-4 select-none overflow-hidden"
             >
+              {/* Exclusive, prominent floating Close button on top-right, away from images and hero elements */}
+              <button
+                type="button"
+                onClick={closeLightbox}
+                className="absolute top-6 right-6 z-[10000] p-3 rounded-full bg-white/10 hover:bg-[#f97316]/20 text-white hover:text-[#f97316] transition-all cursor-pointer border border-white/10 shadow-lg hover:scale-105 active:scale-95"
+                title="Close image preview"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
               {/* Header inside lightbox */}
-              <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-white z-10">
+              <div className="absolute top-6 left-6 max-w-[70%] text-white z-[10000]">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold font-mono tracking-widest text-brand-gold bg-brand-gold/10 border border-brand-gold/30 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] font-bold font-mono tracking-widest text-[#f97316] bg-[#f97316]/10 border border-[#f97316]/30 px-1.5 py-0.5 rounded">
                       EXPLORE MEDIA
                     </span>
                     <span className="text-[11px] text-white/50 font-mono">
@@ -597,15 +637,6 @@ export default function PlacesGallery() {
                   </div>
                   <h3 className="font-serif text-base sm:text-lg font-semibold tracking-tight">{activeItem.title}</h3>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={closeLightbox}
-                  className="p-2 sm:p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all border border-white/10 cursor-pointer"
-                  title="Close Vault"
-                >
-                  <X className="w-4.5 h-4.5" />
-                </button>
               </div>
 
               {/* Main Slider Panel */}

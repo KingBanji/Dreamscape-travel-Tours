@@ -210,12 +210,6 @@ export default function ContactSection() {
                       >
                         +260 975 222 136
                       </a>
-                      <a
-                        href="tel:+260977671016"
-                        className="font-semibold text-xs sm:text-sm text-white block hover:text-brand-gold transition-colors"
-                      >
-                        +260 977 671 016
-                      </a>
                     </div>
                   </div>
                 </div>

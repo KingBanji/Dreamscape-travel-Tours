@@ -83,7 +83,6 @@ export default function FAQSection({ faqs }: FAQSectionProps) {
               </p>
               <span className="text-xs font-mono font-bold text-brand-gold mt-3 block space-y-1">
                 <a href="tel:+260975222136" className="block hover:underline">📞 +260 975 222 136</a>
-                <a href="tel:+260977671016" className="block hover:underline">📞 +260 977 671 016</a>
               </span>
             </div>
           </div>

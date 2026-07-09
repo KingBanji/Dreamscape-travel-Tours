@@ -1,15 +1,80 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { query } from "./config/database";
+import admin from "firebase-admin";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 dotenv.config();
 
 const PORT = 3000;
+
+// Initialize Firebase Admin safely for server-side operations
+let adminDb: any = null;
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    if (firebaseConfig.projectId) {
+      const adminSdk = admin as any;
+      // In Cloud Run environments, credential.applicationDefault() will load automatically.
+      // If we are running in local sandbox, we can catch the error and fall back gracefully.
+      try {
+        adminSdk.initializeApp({
+          credential: adminSdk.credential.applicationDefault(),
+          projectId: firebaseConfig.projectId
+        });
+      } catch (credErr) {
+        // Fallback initialization without credential parameter (will search environment variables or default to standard)
+        console.warn("Could not load applicationDefault credential, initializing with projectId only:", firebaseConfig.projectId);
+        adminSdk.initializeApp({
+          projectId: firebaseConfig.projectId
+        });
+      }
+
+      if (firebaseConfig.firestoreDatabaseId) {
+        try {
+          adminDb = getFirestore(firebaseConfig.firestoreDatabaseId);
+        } catch (e) {
+          adminDb = getFirestore();
+        }
+      } else {
+        adminDb = getFirestore();
+      }
+      console.log("Firebase Admin successfully initialized. Firestore target database ID:", firebaseConfig.firestoreDatabaseId || "default");
+    }
+  }
+} catch (error: any) {
+  console.error("Firebase Admin initialization failed. Server will run with local database fallbacks only. Error:", error.message);
+}
+
+// Sync signed-up custom users to Firestore clients collection
+async function syncUserToFirestore(userId: string, name: string, email: string, phone: string) {
+  if (!adminDb) {
+    console.warn("Firestore Admin DB is not initialized. Skipping sync of user to Firestore:", email);
+    return;
+  }
+  try {
+    const clientRef = adminDb.collection("clients").doc(userId);
+    await clientRef.set({
+      uid: userId,
+      name: name,
+      email: email,
+      phone: phone || "",
+      createdAt: FieldValue.serverTimestamp(),
+      totalBookings: 0,
+      totalSpent: 0
+    }, { merge: true });
+    console.log(`Synced user [${email}] to Firestore 'clients' collection.`);
+  } catch (err) {
+    console.error("Failed to sync client to Firestore:", err);
+  }
+}
 
 // Initialize Gemini SDK with telemetry header requested by standard guides
 const ai = new GoogleGenAI({
@@ -224,7 +289,11 @@ TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make
         [name, email, password_hash, role || 'traveler']
       );
 
-      res.status(201).json({ success: true, user: result.rows[0] });
+      const user = result.rows[0];
+      // Sync to Firestore 'clients' collection for unified admin CRM dashboard
+      await syncUserToFirestore(String(user.id), user.name, user.email, "");
+
+      res.status(201).json({ success: true, user });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -257,6 +326,9 @@ TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make
 
       const user = result.rows[0];
       const token = signToken(user);
+
+      // Sync to Firestore 'clients' collection for unified admin CRM dashboard
+      await syncUserToFirestore(String(user.id), user.name, user.email, phone || "");
 
       res.status(201).json({ success: true, token, user });
     } catch (err: any) {

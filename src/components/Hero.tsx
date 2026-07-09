@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
-import { Search, MapPin, Calendar, Compass, Users, ChevronDown } from "lucide-react";
-import { motion } from "motion/react";
+import { Search, MapPin, Calendar, Compass, Users, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../lib/LanguageContext";
 
 const heroBg = "/images/hero.jpg";
@@ -16,6 +16,39 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
   const [selectedDestId, setSelectedDestId] = useState("");
   const [selectedActivity, setSelectedActivity] = useState("");
   const [guests, setGuests] = useState(15);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  const heroSlides = [
+    {
+      url: "/images/hero.jpg",
+      title: language === "fr" ? "Safari au Coucher du Soleil sur le Zambèze" : "Zambezi Sunset Safari",
+      description: language === "fr" 
+        ? "Découvrez les rives légendaires du Zambèze, une faune spectaculaire et des levers de soleil africains bruts." 
+        : "Experience legendary Zambezi riverbanks, spectacular wildlife tracking, and raw African sunrises.",
+    },
+    {
+      url: "/images/active spotlight 2.jpg",
+      title: language === "fr" ? "Retraite des Chutes de Shantumbu" : "Shantumbu Falls Retreat",
+      description: language === "fr" 
+        ? "La porte dérobée de Lusaka. Randonnez sur des sentiers escarpés anciens et baignez-vous sous les chutes." 
+        : "Lusaka's elite hidden gateway. Hike across spectacular, ancient steep-ridged trails and stand beneath fresh, natural waterfall plunge pools.",
+    },
+    {
+      url: "/images/south luangwa 2.jpg",
+      title: language === "fr" ? "Safari à Pied de South Luangwa" : "South Luangwa Walking Safari",
+      description: language === "fr" 
+        ? "Au cœur de la vallée de la Luangwa, pistez les léopards et prédateurs à pied en toute sécurité." 
+        : "Deep within the Luangwa River Valley, experience high-density predator tracking barefoot on the wild trails.",
+    },
+    {
+      url: "/images/Victoria Falls (Mosi-oa-Tunya) Discovery.webp",
+      title: language === "fr" ? "Chutes Victoria (Mosi-oa-Tunya)" : "Victoria Falls (Mosi-oa-Tunya)",
+      description: language === "fr" 
+        ? "La Fumée qui Gronde. Admirez le plus grand rideau d'eau tombante du monde." 
+        : "The Smoke that Thunders. Stand on the edge of the world's most spectacular geological sheet of falling water.",
+    }
+  ];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -38,7 +71,14 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
       className="relative min-h-screen bg-brand-dark flex flex-col justify-center items-center overflow-hidden pt-28 pb-16 px-4"
     >
       {/* Immersive background decoration with custom matching ambient underlay to fit and display all people beautifully */}
-      <div className="absolute inset-0 z-0 bg-black/95">
+      <div 
+        className="absolute inset-0 z-0 bg-black/95 cursor-pointer"
+        onClick={() => {
+          setLightboxOpen(true);
+          setCurrentSlideIndex(0);
+        }}
+        title={language === "fr" ? "Cliquez pour ouvrir la galerie interactive" : "Click to view interactive gallery"}
+      >
         {/* Soft blurred ambient underlay of the same image to prevent ugly margins on unexpected ratios */}
         <img
           src={heroBg}
@@ -67,24 +107,22 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-medium/40 border border-brand-teal/20 backdrop-blur-sm mb-6 text-[10px] font-mono tracking-[0.25em] text-brand-gold uppercase font-bold"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border-2 border-orange-500/50 backdrop-blur-md mb-6 text-xs font-mono tracking-[0.2em] text-orange-500 uppercase font-extrabold shadow-[0_0_15px_rgba(249,115,22,0.15)] select-none hover:bg-orange-500/20 transition-all duration-300"
         >
-          <Compass className="w-3.5 h-3.5 text-brand-gold animate-spin-slow" />
-          <span>{t("heroSub")}</span>
+          <Compass className="w-4 h-4 text-orange-500 animate-spin-slow animate-flicker" />
+          <span>
+            {language === "fr" ? "Explorez la Zambie Comme Jamais" : "Explore Zambia Like Never Before"}
+          </span>
         </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="text-center w-full font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-tight md:leading-none max-w-5xl mx-auto"
+          className="text-center w-full font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-tight md:leading-none max-w-5xl mx-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
         >
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-brand-gold-light to-brand-gold block sm:inline text-center">
-            {language === "fr" ? "Explorez la Zambie" : "Explore Zambia"}
-          </span>{" "}
-          <br className="hidden md:inline" />
-          <span className="block sm:inline text-center">
-            {language === "fr" ? "Comme Jamais" : "Like Never Before"}
+          <span className="wilderness-title text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-300 to-sky-500 block text-center">
+            {t("heroTitle")}
           </span>
         </motion.h1>
 
@@ -111,13 +149,13 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
             onClick={() => onBookTour?.()}
             className="px-8 py-4 bg-gradient-to-r from-brand-gold to-brand-gold-light hover:brightness-110 text-brand-dark rounded-full font-bold text-xs sm:text-sm font-mono uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-gold/30 cursor-pointer flex items-center gap-2"
           >
-            👉 {t("bookNow")}
+            {t("bookNow")}
           </button>
           <a
             href="#packages"
             className="px-8 py-4 bg-brand-medium/60 border border-brand-gold/45 hover:bg-brand-medium/90 text-brand-gold-light rounded-full font-bold text-xs sm:text-sm font-mono uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer flex items-center gap-2"
           >
-            👉 {t("exploreDest")}
+            {t("exploreDest")}
           </a>
         </motion.div>
       </div>
@@ -238,6 +276,140 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
           </span>
         </div>
       </motion.div>
+
+      {/* Dynamic Fullscreen Lightbox Carousel with Hidden Hero Section overlay */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col justify-between items-center py-6 px-4 select-none overflow-hidden"
+            onClick={() => setLightboxOpen(false)}
+          >
+            {/* Top Bar with brand and Close Button */}
+            <div className="w-full max-w-6xl flex justify-between items-center z-50 px-4">
+              <div className="flex flex-col text-left">
+                <span className="text-[#f97316] text-[10px] font-mono uppercase tracking-[0.25em] font-extrabold animate-pulse">
+                  ✦ {language === "fr" ? "VUE D'ÉLITE WILDERNESS" : "WILDERNESS ELITE GALLERY"} ✦
+                </span>
+                <span className="text-white font-serif text-sm sm:text-base font-bold uppercase tracking-tight">
+                  Dreamscape Tour Carousel
+                </span>
+              </div>
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="p-3 rounded-full bg-white/10 hover:bg-[#f97316]/20 text-white hover:text-[#f97316] transition-all cursor-pointer border border-white/10 shadow-lg hover:scale-105 active:scale-95"
+                aria-label="Close Gallery Carousel"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Main Carousel Area */}
+            <div className="relative w-full max-w-5xl flex-1 flex items-center justify-center my-4">
+              {/* Previous Arrow */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentSlideIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+                }}
+                className="absolute left-2 sm:left-4 z-50 p-3 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/10 hover:text-brand-gold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xl"
+                aria-label="Previous Slide"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              {/* Slide image */}
+              <div 
+                className="relative w-full h-[55vh] md:h-[60vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentSlideIndex}
+                    src={heroSlides[currentSlideIndex].url}
+                    alt={heroSlides[currentSlideIndex].title}
+                    referrerPolicy="no-referrer"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 0.4 }}
+                    className="w-full h-full object-cover"
+                  />
+                </AnimatePresence>
+
+                {/* Soft gradient bottom overlay */}
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+              </div>
+
+              {/* Next Arrow */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+                }}
+                className="absolute right-2 sm:right-4 z-50 p-3 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/10 hover:text-brand-gold hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xl"
+                aria-label="Next Slide"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Bottom: The Hidden Hero Section Overlay */}
+            <div 
+              className="w-full max-w-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 p-6 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-4 z-40 relative -mt-16 sm:-mt-20 mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <span className="inline-block px-3 py-1 rounded-full bg-[#f97316]/15 border border-[#f97316]/35 text-[9px] font-mono uppercase tracking-[0.22em] text-[#f97316] font-extrabold mb-2 animate-pulse">
+                  {language === "fr" ? "✦ EXPÉDITION DÉCOUVERTE ✦" : "✦ EXCLUSIVE BLUEPRINT SPOTLIGHT ✦"}
+                </span>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-md">
+                  {heroSlides[currentSlideIndex].title}
+                </h3>
+                <p className="text-brand-sand/85 text-xs sm:text-sm mt-3 leading-relaxed max-w-lg font-sans">
+                  {heroSlides[currentSlideIndex].description}
+                </p>
+              </div>
+
+              {/* Hidden Hero Actions */}
+              <div className="flex items-center gap-3 w-full sm:w-auto mt-1">
+                <button
+                  onClick={() => {
+                    setLightboxOpen(false);
+                    onBookTour?.();
+                  }}
+                  className="flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-[#f97316] to-orange-600 hover:brightness-110 active:scale-95 text-black font-bold text-xs font-mono uppercase tracking-widest rounded-xl transition-all cursor-pointer text-center"
+                >
+                  {language === "fr" ? "Réserver ce Safari" : "Reserve this Safari"}
+                </button>
+                <button
+                  onClick={() => setLightboxOpen(false)}
+                  className="flex-1 sm:flex-initial px-6 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold text-xs font-mono uppercase tracking-widest rounded-xl transition-all cursor-pointer text-center border border-white/10"
+                >
+                  {language === "fr" ? "Fermer" : "Close Gallery"}
+                </button>
+              </div>
+
+              {/* Indicator dots */}
+              <div className="flex gap-2.5 mt-2">
+                {heroSlides.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlideIndex(index)}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      currentSlideIndex === index ? "w-6 bg-brand-gold" : "w-1.5 bg-white/40 hover:bg-white/60"
+                    }`}
+                    title={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

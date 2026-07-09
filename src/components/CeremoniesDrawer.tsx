@@ -135,6 +135,7 @@ export default function CeremoniesDrawer({
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-brand-medium text-brand-sand transition-colors cursor-pointer"
+              aria-label="Close traditional ceremonies portal"
             >
               <X className="w-6 h-6" />
             </button>
@@ -240,6 +241,7 @@ export default function CeremoniesDrawer({
                       });
                     }}
                     className="mt-4 w-full py-2.5 bg-brand-dark hover:bg-brand-medium text-brand-gold hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
+                    aria-label={`Inquire about bespoke details for ${cmy.name}`}
                   >
                     <Compass className="w-3.5 h-3.5 text-brand-gold" />
                     {t("inquireBespoke")}

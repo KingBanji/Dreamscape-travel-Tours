@@ -29,7 +29,7 @@ export default function AIChatBot({ isOpen, onClose }: AIChatBotProps) {
     {
       id: "welcome",
       sender: "ai",
-      text: "Salibonani & Greetings! 🐆 I am your Dreamscape Tours Zambia AI Safari Expert. I've been fully briefed on our premium Zambia expeditions—like our hidden Shantumbu Falls day tour (ZK 650), the nocturnal South Luangwa leopard safaris, or our 12-day absolute luxury rivers tour. Ask me anything about routes, customizable itineraries, secure Mobile Money, or traditional ceremonies! Modern and traditional, we are ready to guide you.",
+      text: "Salibonani & Greetings! 🐆 I am your Dreamscape Tours Zambia Safari Expert. I've been fully briefed on our premium Zambia expeditions—like our hidden Shantumbu Falls day tour (ZK 650), the nocturnal South Luangwa leopard safaris, or our 12-day absolute luxury rivers tour. Ask me anything about routes, customizable itineraries, secure Mobile Money, or traditional ceremonies! Modern and traditional, we are ready to guide you.",
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -106,7 +106,7 @@ export default function AIChatBot({ isOpen, onClose }: AIChatBotProps) {
   };
 
   const handleResetChat = () => {
-    if (window.confirm("Do you want to reset your conversational trail log with the AI Advisor?")) {
+    if (window.confirm("Do you want to reset your conversational trail log with the Safari Advisor?")) {
       setMessages([
         {
           id: "welcome",
@@ -143,14 +143,14 @@ export default function AIChatBot({ isOpen, onClose }: AIChatBotProps) {
         <div className="bg-gradient-to-r from-brand-teal/80 to-brand-dark/90 p-4 text-white flex items-center justify-between border-b border-brand-sand-dark/20">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-brand-gold/15 flex items-center justify-center border border-brand-gold/30 shrink-0">
-              <Bot className="w-5 h-5 text-brand-gold shrink-0 animate-pulse" />
+              <Compass className="w-5 h-5 text-brand-gold shrink-0 animate-pulse" />
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-brand-gold flex items-center gap-1">
-                AI Safari Advisor <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                Safari Advisor <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
               </h4>
               <span className="text-[9px] text-teal-300 dark:text-teal-400 font-mono tracking-widest block uppercase">
-                ● Trail Intelligence
+                ● Trail Guide
               </span>
             </div>
           </div>

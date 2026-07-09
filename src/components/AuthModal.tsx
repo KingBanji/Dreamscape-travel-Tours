@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Lock, Mail, User, Chrome, Sparkles, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { X, Lock, Mail, User, Chrome, Sparkles, CheckCircle, AlertCircle, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthAndData } from "../lib/FirebaseContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -14,6 +14,11 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: AuthModalProps) {
   const { signIn, isDbEnabled, setCredentialsUser, user } = useAuthAndData();
+  const isInIframe = typeof window !== "undefined" && window.self !== window.top;
+
+  const handleOpenInNewTab = () => {
+    window.open(window.location.href, "_blank");
+  };
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot" | "mfa">(initialTab as any);
   const [loading, setLoading] = useState(false);
@@ -358,7 +363,19 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
               ) : (
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               )}
-              <span className="font-sans font-medium">{feedbackMsg.text}</span>
+              <div className="flex flex-col gap-1.5 flex-1">
+                <span className="font-sans font-medium leading-relaxed">{feedbackMsg.text}</span>
+                {feedbackMsg.text.includes("iframe") && (
+                  <button
+                    type="button"
+                    onClick={handleOpenInNewTab}
+                    className="self-start mt-1 px-3 py-1 bg-brand-gold text-brand-dark text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-brand-gold-light transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {language === "fr" ? "Ouvrir dans un nouvel onglet" : "Open in New Tab"}
+                  </button>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -642,6 +659,30 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
                 {language === "fr" ? "Ou utiliser Google Passport" : "Or use Google Passport"}
               </span>
             </div>
+
+            {isInIframe && (
+              <div className="p-3 bg-brand-teal/5 rounded-xl border border-brand-teal/15 text-[10.5px] text-brand-sand/75 flex items-start gap-2 leading-relaxed mb-1">
+                <AlertCircle className="w-4 h-4 text-brand-teal shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold text-brand-teal block">
+                    {language === "fr" ? "Avis d'authentification de l'Aperçu" : "Preview Sandbox Authentication Notice"}
+                  </span>
+                  <p>
+                    {language === "fr"
+                      ? "La sécurité de votre navigateur restreint la connexion Google dans cet aperçu. Si l'ouverture échoue ou si vous préférez un flux direct, veuillez cliquer ci-dessous pour ouvrir l'application dans un nouvel onglet standard."
+                      : "Your browser's security rules restrict Google sign-in inside this preview iframe. If it fails or you want a direct login, click below to open the application in a new top-level tab."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenInNewTab}
+                    className="inline-flex px-3 py-1 bg-brand-teal hover:bg-brand-teal-light text-brand-dark text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors items-center gap-1 cursor-pointer mt-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {language === "fr" ? "Ouvrir dans un nouvel onglet" : "Open in New Tab"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleGoogleSignInClick}

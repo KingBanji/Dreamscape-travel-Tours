@@ -37,6 +37,7 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
   const [customerPhone, setCustomerPhone] = useState("");
   const [guestsCount, setGuestsCount] = useState<number>(18);
   const [preferredStartDate, setPreferredStartDate] = useState("2026-08-15");
+  const [individualJoiningOthers, setIndividualJoiningOthers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -163,8 +164,11 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
         throw new Error(language === "fr" ? "Veuillez remplir tous les champs obligatoires." : "Please fill in all required fields.");
       }
 
-      if (guestsCount < 15 || guestsCount > 33) {
+      if (!individualJoiningOthers && (guestsCount < 15 || guestsCount > 33)) {
         throw new Error(language === "fr" ? "La taille du groupe doit être entre 15 et 33 voyageurs." : "Group scale must be between 15 and 33 travelers.");
+      }
+      if (individualJoiningOthers && (guestsCount < 1 || guestsCount > 33)) {
+        throw new Error(language === "fr" ? "Le nombre de voyageurs doit être entre 1 et 33." : "Travelers count must be between 1 and 33.");
       }
 
       const bookingDoc = {
@@ -174,7 +178,8 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
         guestsCount: Number(guestsCount),
         preferredStartDate: preferredStartDate || currentTour.estimatedDate,
         tourName: currentTour.titleEn, // The target tour name
-        createdAt: new Date().toISOString() // Server-side or client timestamp standard
+        createdAt: new Date().toISOString(), // Server-side or client timestamp standard
+        individualJoiningOthers: individualJoiningOthers
       };
 
       if (db) {
@@ -455,12 +460,14 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
                         </div>
                         <div>
                           <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
-                            {language === "fr" ? "Voyageurs estimées (15-33)" : "Travelers group (15-33)"} *
+                            {individualJoiningOthers
+                              ? (language === "fr" ? "Nombre de voyageurs (1-33)" : "Travelers count (1-33)")
+                              : (language === "fr" ? "Voyageurs estimées (15-33)" : "Travelers group (15-33)")} *
                           </label>
                           <input
                             type="number"
                             required
-                            min="15"
+                            min={individualJoiningOthers ? 1 : 15}
                             max="33"
                             value={guestsCount === 0 ? "" : guestsCount}
                             onChange={(e) => {
@@ -468,12 +475,36 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
                               setGuestsCount(val);
                             }}
                             className={`w-full text-xs font-mono bg-slate-900 border rounded-xl px-3.5 py-2 focus:outline-none transition-all ${
-                              guestsCount !== 0 && (guestsCount < 15 || guestsCount > 33)
+                              guestsCount !== 0 && (
+                                (!individualJoiningOthers && (guestsCount < 15 || guestsCount > 33)) ||
+                                (individualJoiningOthers && (guestsCount < 1 || guestsCount > 33))
+                              )
                                 ? "border-red-500 bg-red-950/30 text-red-100"
                                 : "border-slate-800 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                             }`}
                           />
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-2.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <input
+                          type="checkbox"
+                          id="group-individual-joining-others"
+                          checked={individualJoiningOthers}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setIndividualJoiningOthers(checked);
+                            if (checked) {
+                              setGuestsCount(1);
+                            } else {
+                              setGuestsCount(18);
+                            }
+                          }}
+                          className="rounded text-orange-500 focus:ring-orange-500 accent-orange-500 cursor-pointer h-4 w-4 shrink-0"
+                        />
+                        <label htmlFor="group-individual-joining-others" className="text-[10.5px] font-semibold text-zinc-300 cursor-pointer select-none leading-tight">
+                          {language === "fr" ? "Rejoindre un groupe existant / Individuel" : "Join an existing group / Individual joining others"}
+                        </label>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-3.5 mt-2 pt-2 border-t border-slate-900">
@@ -484,7 +515,10 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
                         </span>
                         <button
                           type="submit"
-                          disabled={isSubmitting || (guestsCount !== 0 && (guestsCount < 15 || guestsCount > 33))}
+                          disabled={isSubmitting || (guestsCount !== 0 && (
+                            (!individualJoiningOthers && (guestsCount < 15 || guestsCount > 33)) ||
+                            (individualJoiningOthers && (guestsCount < 1 || guestsCount > 33))
+                          ))}
                           className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-xs font-bold text-white transition-all duration-300 disabled:opacity-50 cursor-pointer text-center"
                         >
                           {isSubmitting

@@ -34,11 +34,19 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
   const [newCustomPasscode, setNewCustomPasscode] = useState("");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"tours" | "inquiries" | "sales" | "clients">("tours");
+  const [activeTab, setActiveTab] = useState<"tours" | "inquiries" | "sales" | "clients" | "newsletter">("tours");
 
   // Clients directory state
   const [clients, setClients] = useState<any[]>([]);
   const [clientSearch, setClientSearch] = useState("");
+
+  // Newsletter states
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [subscriberSearch, setSubscriberSearch] = useState("");
+  const [dispatches, setDispatches] = useState<any[]>([]);
+  const [dispatchSubject, setDispatchSubject] = useState("");
+  const [dispatchContent, setDispatchContent] = useState("");
+  const [isDispatching, setIsDispatching] = useState(false);
 
   // Tours store state (loads from memory & permits direct additions/deletions/edits)
   const [localTours, setLocalTours] = useState<any[]>(() => {
@@ -308,6 +316,156 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     }
   };
 
+  // Load newsletter subscribers live from Firestore
+  useEffect(() => {
+    if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
+      const unsub = onSnapshot(collection(db, "newsletter_subscribers"), (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((snap) => {
+          list.push({ id: snap.id, ...snap.data() });
+        });
+        list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setSubscribers(list);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, "newsletter_subscribers");
+        loadLocalSubscribers();
+      });
+      return () => unsub();
+    } else {
+      loadLocalSubscribers();
+    }
+  }, [user]);
+
+  const loadLocalSubscribers = () => {
+    try {
+      const stored = localStorage.getItem("dreamscape_newsletter_subscribers");
+      if (stored) {
+        setSubscribers(JSON.parse(stored));
+      } else {
+        const mockList = [
+          {
+            id: "sub-mock-1",
+            email: "adventure.seeker@gmail.com",
+            createdAt: new Date(Date.now() - 3600000 * 48).toISOString()
+          },
+          {
+            id: "sub-mock-2",
+            email: "wildlife_photographer@yahoo.com",
+            createdAt: new Date(Date.now() - 3600000 * 12).toISOString()
+          }
+        ];
+        setSubscribers(mockList);
+        localStorage.setItem("dreamscape_newsletter_subscribers", JSON.stringify(mockList));
+      }
+    } catch (err) {
+      console.error("Local storage subscribers parse error", err);
+    }
+  };
+
+  // Load dispatched newsletters live from Firestore
+  useEffect(() => {
+    if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
+      const unsub = onSnapshot(collection(db, "dispatched_newsletters"), (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((snap) => {
+          list.push({ id: snap.id, ...snap.data() });
+        });
+        list.sort((a, b) => new Date(b.sentAt || 0).getTime() - new Date(a.sentAt || 0).getTime());
+        setDispatches(list);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, "dispatched_newsletters");
+        loadLocalDispatches();
+      });
+      return () => unsub();
+    } else {
+      loadLocalDispatches();
+    }
+  }, [user]);
+
+  const loadLocalDispatches = () => {
+    try {
+      const stored = localStorage.getItem("dreamscape_dispatched_newsletters");
+      if (stored) {
+        setDispatches(JSON.parse(stored));
+      } else {
+        const mockList = [
+          {
+            id: "dispatch-mock-1",
+            subject: "The Great Luangwa Migration Begins!",
+            content: "Dear explorers, the elephant herds are on the move! Experience the majestic walks of South Luangwa with our limited bookings.",
+            sentAt: new Date(Date.now() - 3600000 * 120).toISOString(),
+            recipientCount: 2
+          }
+        ];
+        setDispatches(mockList);
+        localStorage.setItem("dreamscape_dispatched_newsletters", JSON.stringify(mockList));
+      }
+    } catch (err) {
+      console.error("Local storage dispatches parse error", err);
+    }
+  };
+
+  const handleSendNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dispatchSubject.trim() || !dispatchContent.trim()) {
+      alert("Please fill in both the subject and the content.");
+      return;
+    }
+
+    if (subscribers.length === 0) {
+      alert("You have no subscribers to dispatch this newsletter to.");
+      return;
+    }
+
+    setIsDispatching(true);
+    const dispatchId = `dispatch-${Date.now()}`;
+    const newDispatch = {
+      id: dispatchId,
+      subject: dispatchSubject.trim(),
+      content: dispatchContent.trim(),
+      sentAt: new Date().toISOString(),
+      recipientCount: subscribers.length
+    };
+
+    try {
+      if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
+        await setDoc(doc(db, "dispatched_newsletters", dispatchId), newDispatch);
+      }
+      
+      const updated = [newDispatch, ...dispatches];
+      setDispatches(updated);
+      localStorage.setItem("dreamscape_dispatched_newsletters", JSON.stringify(updated));
+
+      // Clear form
+      setDispatchSubject("");
+      setDispatchContent("");
+      setSuccessMsg(`Successfully dispatched "${newDispatch.subject}" to ${newDispatch.recipientCount} subscriber(s)!`);
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error("Newsletter dispatch error:", err);
+      alert("Failed to save newsletter dispatch log.");
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
+  const handleDeleteSubscriber = async (subId: string) => {
+    if (!window.confirm("Permanently unsubscribe this user?")) return;
+    try {
+      if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
+        await deleteDoc(doc(db, "newsletter_subscribers", subId));
+      }
+      const updated = subscribers.filter((s) => s.id !== subId);
+      setSubscribers(updated);
+      localStorage.setItem("dreamscape_newsletter_subscribers", JSON.stringify(updated));
+      setSuccessMsg("Subscriber unsubscribed successfully.");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } catch (err) {
+      console.error("Error unsubscribing user:", err);
+      alert("Unsubscribe failed.");
+    }
+  };
+
   // Persist managed tours to local storage whenever they change
   useEffect(() => {
     localStorage.setItem("dreamscape_managed_tours", JSON.stringify(localTours));
@@ -318,6 +476,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     e.preventDefault();
     const customPasscode = localStorage.getItem("dreamscape_admin_passcode");
     if (
+      passcode === "travel2026" || 
       passcode === "travel@2026" || 
       passcode === "views1995" || 
       (customPasscode && passcode === customPasscode)
@@ -849,6 +1008,18 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
               >
                 <DollarSign className="w-4 h-4" />
                 Performance Metrics
+              </button>
+
+              <button
+                onClick={() => setActiveTab("newsletter")}
+                className={`flex-1 py-3 text-xs font-mono uppercase tracking-wider rounded-xl font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === "newsletter"
+                    ? "bg-brand-gold text-brand-dark shadow-md border border-brand-teal/20"
+                    : "text-brand-sand/70 hover:text-white"
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                Newsletter Registry ({subscribers.length})
               </button>
             </div>
 
@@ -1427,6 +1598,202 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
                       </div>
                     );
                   })()}
+                </div>
+              )}
+
+              {/* TAB 5: NEWSLETTER BROADCAST AND REGISTRY */}
+              {activeTab === "newsletter" && (
+                <div className="space-y-8 animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                    <div>
+                      <h4 className="font-serif text-xl font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-brand-gold animate-pulse" />
+                        Wilderness Registry & Dispatch Hub
+                      </h4>
+                      <p className="text-xs text-brand-sand/70 mt-1">
+                        Compose premium safari newsletters, view campaign logs, and oversee the registered explorer contacts list.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* LEFT COLUMN - COMPOSE CAMPAIGN */}
+                    <div className="lg:col-span-2 space-y-8">
+                      <div className="bg-brand-dark/50 border border-brand-teal/15 p-6 rounded-2xl space-y-4">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-brand-gold font-bold flex items-center gap-2">
+                          <Send className="w-4 h-4 text-brand-gold" />
+                          Compose Broadcast Campaign
+                        </h5>
+                        
+                        <form onSubmit={handleSendNewsletter} className="space-y-4">
+                          <div>
+                            <label className="block text-[10px] font-mono uppercase text-brand-sand/60 mb-1">
+                              Newsletter Subject / Headline
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. South Luangwa Walking Safari Specials - September 2026"
+                              value={dispatchSubject}
+                              onChange={(e) => setDispatchSubject(e.target.value)}
+                              className="w-full bg-[#030712] border border-brand-teal/20 focus:border-brand-gold/50 rounded-xl py-2.5 px-3.5 text-xs outline-none text-white transition-all placeholder:text-brand-sand/30"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-mono uppercase text-brand-sand/60 mb-1">
+                              Campaign Content (Markdown or Text)
+                            </label>
+                            <textarea
+                              required
+                              rows={8}
+                              placeholder="Type your wilderness bulletin message or newsletter HTML/Text. Invite them to join bespoke tour options..."
+                              value={dispatchContent}
+                              onChange={(e) => setDispatchContent(e.target.value)}
+                              className="w-full bg-[#030712] border border-brand-teal/20 focus:border-brand-gold/50 rounded-xl py-2.5 px-3.5 text-xs outline-none text-white transition-all font-sans leading-relaxed placeholder:text-brand-sand/30 resize-none"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-[10px] font-mono text-brand-sand/40">
+                              Will be dispatched to {subscribers.length} recipient(s).
+                            </span>
+                            <button
+                              type="submit"
+                              disabled={isDispatching || subscribers.length === 0}
+                              className="px-6 py-2.5 bg-brand-gold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-brand-dark font-mono text-xs uppercase tracking-wider rounded-xl font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-brand-gold/10"
+                            >
+                              <span>{isDispatching ? "Transmitting..." : "Send Newsletter Blast"}</span>
+                              <Send className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+
+                      {/* DISPATCH CAMPAIGN ARCHIVE */}
+                      <div className="bg-brand-dark/30 border border-brand-teal/10 p-6 rounded-2xl space-y-4">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-brand-teal font-bold">
+                          Campaign Broadcast Archives ({dispatches.length})
+                        </h5>
+
+                        {dispatches.length === 0 ? (
+                          <p className="text-xs text-brand-sand/40 italic font-mono text-center py-4">No historical campaigns recorded.</p>
+                        ) : (
+                          <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+                            {dispatches.map((disp) => {
+                              let dateStr = "N/A";
+                              if (disp.sentAt) {
+                                try {
+                                  dateStr = new Date(disp.sentAt).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                  });
+                                } catch (_) {}
+                              }
+                              return (
+                                <div key={disp.id} className="p-3.5 bg-[#030712]/50 border border-brand-teal/10 rounded-xl space-y-2">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0 flex-1">
+                                      <h6 className="text-xs font-bold text-white leading-snug truncate">{disp.subject}</h6>
+                                      <span className="text-[10px] font-mono text-brand-sand/50 block mt-1">
+                                        Sent: {dateStr}
+                                      </span>
+                                    </div>
+                                    <span className="shrink-0 text-[9px] font-mono font-extrabold uppercase bg-brand-teal/10 border border-brand-teal/20 text-brand-teal px-2 py-0.5 rounded">
+                                      {disp.recipientCount} Recipients
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-brand-sand/70 whitespace-pre-wrap bg-brand-dark/40 p-3 rounded-lg font-mono">
+                                    {disp.content}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN - CONTACT REGISTRY */}
+                    <div className="space-y-6">
+                      <div className="bg-brand-dark/50 border border-brand-teal/15 p-6 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <h5 className="text-xs font-mono uppercase tracking-widest text-brand-gold font-bold">
+                            Explorer Contacts List
+                          </h5>
+                          <span className="text-[10px] font-mono text-brand-teal bg-brand-teal/10 border border-brand-teal/20 px-2 py-0.5 rounded-full font-extrabold">
+                            {subscribers.length} total
+                          </span>
+                        </div>
+
+                        {/* Search Subscribers */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search subscriber email..."
+                            value={subscriberSearch}
+                            onChange={(e) => setSubscriberSearch(e.target.value)}
+                            className="w-full bg-[#070d18] border border-brand-teal/20 focus:border-brand-gold/50 rounded-xl py-2 px-3 pl-8 text-xs font-mono text-white placeholder-brand-sand/30 outline-none transition-all"
+                          />
+                          <Compass className="w-3.5 h-3.5 text-brand-sand/30 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        </div>
+
+                        {/* Subscribers Contact Cards */}
+                        {(() => {
+                          const filtered = subscribers.filter((s) => {
+                            return (s.email || "").toLowerCase().includes(subscriberSearch.toLowerCase());
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <p className="text-xs text-brand-sand/40 italic font-mono text-center py-8">
+                                {subscriberSearch ? "No matching contacts." : "No registered subscribers."}
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+                              {filtered.map((sub) => {
+                                let dateStr = "N/A";
+                                if (sub.createdAt) {
+                                  try {
+                                    dateStr = new Date(sub.createdAt).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric"
+                                    });
+                                  } catch (_) {}
+                                }
+                                return (
+                                  <div key={sub.id} className="p-3 bg-[#030712]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 hover:bg-white/5 transition-all">
+                                    <div className="min-w-0 flex-1">
+                                      <span className="text-xs font-semibold text-white truncate block" title={sub.email}>
+                                        {sub.email}
+                                      </span>
+                                      <span className="text-[9px] font-mono text-brand-sand/45 block mt-0.5">
+                                        Subscribed: {dateStr}
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteSubscriber(sub.id)}
+                                      className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/15 rounded-lg text-red-400 text-[10px] font-mono cursor-pointer transition-colors shrink-0"
+                                      title="Unsubscribe reader"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

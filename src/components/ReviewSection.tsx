@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { Review, Destination } from "../types";
 import { MessageSquare, Compass, Send, CheckCircle2, Trash2 } from "lucide-react";
 import { useAuthAndData } from "../lib/FirebaseContext";
+import { motion, AnimatePresence } from "motion/react";
 
 interface ReviewSectionProps {
   reviews: Review[];
@@ -47,7 +48,7 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
   };
 
   return (
-    <section id="reviews" className="py-24 bg-white border-t border-brand-sand-dark">
+    <section id="reviews" className="py-24 bg-white border-t border-brand-sand-dark overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Module Header */}
@@ -222,67 +223,74 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
             </div>
 
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-              {filteredReviews.map((rev) => {
-                const canDelete = user && (rev.userId === user.uid || user.email === 'luyandobanjilb@gmail.com');
-                return (
-                  <div
-                    key={rev.id}
-                    className="p-5 sm:p-6 liquid-glass-card hover:bg-white/60 hover:border-white/50 hover:shadow-lg transition-all duration-300 relative group/card"
-                  >
-                    {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to permanently delete this logged trail review?")) {
-                            deleteReview(rev.id);
-                          }
-                        }}
-                        className="absolute right-4 top-4 flex items-center justify-center p-1.5 bg-red-50/70 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all cursor-pointer z-10 opacity-75 hover:opacity-100"
-                        title="Remove Review"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+              <AnimatePresence mode="popLayout">
+                {filteredReviews.map((rev, index) => {
+                  const canDelete = user && (rev.userId === user.uid || user.email === 'luyandobanjilb@gmail.com');
+                  return (
+                    <motion.div
+                      layout
+                      exit={{ opacity: 0, x: -30, scale: 0.95 }}
+                      transition={{ 
+                        layout: { type: "spring", stiffness: 180, damping: 25 }
+                      }}
+                      key={rev.id}
+                      className="p-5 sm:p-6 liquid-glass-card hover:bg-white/60 hover:border-white/50 hover:shadow-lg transition-all duration-300 relative group/card"
+                    >
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to permanently delete this logged trail review?")) {
+                              deleteReview(rev.id);
+                            }
+                          }}
+                          className="absolute right-4 top-4 flex items-center justify-center p-1.5 bg-red-50/70 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all cursor-pointer z-10 opacity-75 hover:opacity-100"
+                          title="Remove Review"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full ${rev.avatarColor} text-white font-bold flex items-center justify-center text-xs uppercase`}>
-                          {rev.authorName.split(" ").map((n) => n[0]).join("")}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full ${rev.avatarColor} text-white font-bold flex items-center justify-center text-xs uppercase`}>
+                            {rev.authorName.split(" ").map((n) => n[0]).join("")}
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs sm:text-sm text-brand-dark block">
+                              {rev.authorName}
+                            </span>
+                            <span className="text-[10px] text-brand-dark/50 block font-mono">
+                              📍 {rev.authorLocation} • {rev.date}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-xs sm:text-sm text-brand-dark block">
-                            {rev.authorName}
-                          </span>
-                          <span className="text-[10px] text-brand-dark/50 block font-mono">
-                            📍 {rev.authorLocation} • {rev.date}
+
+                        <div className="flex flex-col items-start sm:items-end sm:pr-8">
+                          <div className="text-xs font-mono font-bold text-brand-teal uppercase tracking-wider bg-brand-sand px-2 py-0.5 rounded-md">
+                            Rating: {rev.rating} / 5
+                          </div>
+                          <span className="text-[9px] font-mono text-brand-teal block uppercase mt-0.5">
+                            {rev.destinationId
+                              ? destinations.find((d) => d.id === rev.destinationId)?.name.split(" (")[0]
+                              : "General Service"}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-start sm:items-end sm:pr-8">
-                        <div className="text-xs font-mono font-bold text-brand-teal uppercase tracking-wider bg-brand-sand px-2 py-0.5 rounded-md">
-                          Rating: {rev.rating} / 5
-                        </div>
-                        <span className="text-[9px] font-mono text-brand-teal block uppercase mt-0.5">
-                          {rev.destinationId
-                            ? destinations.find((d) => d.id === rev.destinationId)?.name.split(" (")[0]
-                            : "General Service"}
+                      <p className="text-brand-dark/75 text-xs sm:text-sm leading-relaxed mt-4 italic font-sans border-l-2 border-brand-teal/10 pl-3">
+                        "{rev.text}"
+                      </p>
+
+                      {rev.verified && (
+                        <span className="absolute bottom-4 right-5 text-[8.5px] font-mono uppercase tracking-widest text-brand-teal font-extrabold flex items-center gap-1 select-none">
+                          🔒 Verified Trail Entry
                         </span>
-                      </div>
-                    </div>
-
-                    <p className="text-brand-dark/75 text-xs sm:text-sm leading-relaxed mt-4 italic font-sans border-l-2 border-brand-teal/10 pl-3">
-                      "{rev.text}"
-                    </p>
-
-                    {rev.verified && (
-                      <span className="absolute bottom-4 right-5 text-[8.5px] font-mono uppercase tracking-widest text-brand-teal font-extrabold flex items-center gap-1 select-none">
-                        🔒 Verified Trail Entry
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
 

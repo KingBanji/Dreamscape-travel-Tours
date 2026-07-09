@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Outfit", "Inter", sans-serif;
   --font-serif: "Playfair Display", Georgia, serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: "Outfit", "Inter", sans-serif;
 
   --color-brand-dark: #0a1120;      /* Premium deep navy/dark blue from logo */
   --color-brand-medium: #112240;    /* Sophisticated dark steel blue */
@@ -83,155 +83,156 @@ body {
 .dark {
   --color-brand-sans: "Outfit", "Inter", sans-serif;
   --color-brand-serif: "Playfair Display", Georgia, serif;
-  --color-brand-mono: "JetBrains Mono", monospace;
+  --color-brand-mono: "Outfit", "Inter", sans-serif;
   
-  --color-brand-dark: #f8fafc;       /* Off-white text in dark mode */
-  --color-brand-medium: #0a1120;     /* Slate / Navy rich blue */
-  --color-brand-sand: #040914;       /* Deepest indigo/navy space background */
-  --color-brand-sand-dark: #1e293b;  /* Sleek borders */
-  --color-brand-teal: #f97316;       /* Bright logo orange accent */
-  --color-brand-gold: #38bdf8;       /* Bright electric sky action link */
+  --color-brand-dark: #050c18;       /* Deepest luxury safari-night blue */
+  --color-brand-medium: #112240;     /* Slate / Navy rich blue card background */
+  --color-brand-sand: #0a192f;       /* Beautiful rich deep safari blue */
+  --color-brand-sand-dark: #1b356d;  /* Sleek blue borders */
+  --color-brand-teal: #f97316;       /* Bright logo orange accent word */
+  --color-brand-gold: #14b8a6;       /* Radiant teal green word action link */
+  --color-brand-gold-light: #2dd4bf; /* Minty teal green secondary highlight */
 }
 
 .dark {
   color-scheme: dark;
 }
 
-/* Hardcoded bg-white and text adjustments for dark utility classes compatibility */
-.dark .bg-white {
-  background-color: #0d1527 !important;
-  color: #f8fafc;
+/* Hardcoded bg-white and text adjustments for dark utility classes compatibility - ALL IN THE BLUE */
+.dark .bg-white,
+.dark section.bg-white {
+  background-color: #0a192f !important; /* Rich deep safari blue */
+  color: #ffffff !important;
 }
 
-/* Ensure all dark-colored text defaults turn into crisp white, except when inside light-background accents */
-.dark .text-brand-dark, 
-.dark .text-neutral-900, 
-.dark .text-neutral-800, 
-.dark .text-neutral-700, 
-.dark .text-gray-900, 
-.dark .text-gray-800, 
-.dark .text-gray-700, 
-.dark .text-slate-900, 
-.dark .text-slate-800, 
-.dark .text-slate-700, 
-.dark .text-zinc-900, 
-.dark .text-zinc-800, 
-.dark .text-zinc-700, 
-.dark .text-stone-900, 
-.dark .text-stone-800, 
-.dark .text-stone-700 {
-  color: #f8fafc !important; 
+/* Ensure background of utility slate/black classes map to beautiful dark blue */
+.dark .bg-slate-950,
+.dark .bg-slate-900,
+.dark .bg-zinc-950,
+.dark .bg-zinc-900,
+.dark .bg-black,
+.dark .bg-black\/80 {
+  background-color: #050c18 !important; /* Deepest luxury blue */
+  color: #ffffff !important;
 }
 
-/* Elegant glowing teal headings in dark mode */
+.dark .bg-slate-800,
+.dark .bg-slate-900 {
+  background-color: #112240 !important; /* Rich Navy Blue */
+}
+
+/* Base text color for dark mode container to support inheritance */
+.dark {
+  color: #ffffff;
+}
+
+/* Force standard dark text, slate, grey, zinc, stone, black and brand-dark elements to clean white */
+.dark [class*="text-neutral"],
+.dark [class*="text-gray"],
+.dark [class*="text-slate"],
+.dark [class*="text-zinc"],
+.dark [class*="text-stone"],
+.dark [class*="text-brand-dark"],
+.dark [class*="text-brand-medium"],
+.dark [class*="text-brand-sand"],
+.dark [class*="text-black"] {
+  color: #ffffff !important;
+}
+
+/* Elegant glowing teal green headings in dark mode */
 .dark h1,
 .dark h2,
 .dark h3,
 .dark h4,
 .dark h5,
 .dark h6 {
-  color: #14b8a6 !important;
+  color: #14b8a6 !important; /* Beautiful Teal Green */
 }
 
-/* Accentuate important highlights or brand teal text with bright minty teal */
-.dark .text-brand-teal,
-.dark .text-teal-600,
-.dark .text-teal-700,
-.dark .text-emerald-600,
-.dark .text-emerald-700 {
-  color: #14b8a6 !important;
+/* Accentuate brand teal/orange text with bright vibrant orange in dark mode! */
+.dark [class*="text-brand-teal"],
+.dark [class*="text-orange"],
+.dark [class*="text-yellow"],
+.dark [class*="text-amber"] {
+  color: #f97316 !important; /* Bright Orange words */
 }
 
-/* Retain high-contrast golden text for stars, ratings, or gold brand values in dark mode */
-.dark .text-brand-gold,
-.dark .text-brand-gold-light {
-  color: #f59e0b !important;
+/* Accentuate other indicators with beautiful teal green! */
+.dark [class*="text-teal"],
+.dark [class*="text-emerald"],
+.dark [class*="text-green"],
+.dark [class*="text-cyan"],
+.dark [class*="text-sky"],
+.dark [class*="text-brand-gold"] {
+  color: #14b8a6 !important; /* Vibrant Teal Green words */
 }
 
-/* Secondary softer slate-blue elements in dark mode for hierarchy */
-.dark .text-brand-dark\/75,
-.dark .text-brand-dark\/70,
-.dark .text-brand-dark\/65,
-.dark .text-brand-dark\/60,
-.dark .text-brand-dark\/50,
-.dark .text-neutral-500,
-.dark .text-neutral-600,
-.dark .text-gray-500,
-.dark .text-gray-600,
-.dark .text-slate-500,
-.dark .text-slate-600,
-.dark .text-zinc-500,
-.dark .text-stone-500 {
-  color: #94a3b8 !important; /* Elegant slate-gray-teal */
-}
-
-/* Ensure buttons with solid light accent backgrounds (Gold, Teal, Emerald) always have deep dark readable text */
+/* Ensure buttons with solid light accent backgrounds always have deep dark readable text */
 .dark button.bg-brand-gold,
 .dark button.bg-brand-gold-light,
 .dark button.bg-brand-teal,
+.dark button.bg-orange-500,
+.dark button.bg-teal-500,
 .dark .bg-brand-gold button,
 .dark .bg-brand-teal button,
+.dark .bg-orange-500 button,
 .dark a.bg-brand-gold,
 .dark a.bg-brand-teal,
+.dark a.bg-orange-500,
 .dark div.bg-brand-gold,
 .dark div.bg-brand-teal,
+.dark div.bg-orange-500,
 .dark span.bg-brand-gold,
-.dark span.bg-brand-teal {
-  color: #050b14 !important;
-}
-
-/* Make sure elements inside active/filled accent components don't turn white or teal */
+.dark span.bg-brand-teal,
+.dark span.bg-orange-500,
 .dark .bg-brand-gold *,
 .dark .bg-brand-gold-light *,
-.dark .bg-brand-teal * {
-  color: #050b14 !important;
+.dark .bg-brand-teal *,
+.dark .bg-orange-500 * {
+  color: #050c18 !important; /* Crisp dark contrast text for filled accents */
 }
 
-/* Let the star icon fills and strokes keep their golden radiance */
+/* Let the star icon fills and strokes keep their orange radiance */
 .dark svg.fill-brand-gold,
 .dark svg.text-brand-gold,
 .dark .text-brand-gold svg {
-  color: #fbbf24 !important;
-  fill: #fbbf24 !important;
+  color: #f97316 !important;
+  fill: #f97316 !important;
 }
 
-/* Hardcoded white transparent offsets */
+/* Hardcoded white transparent offsets in the blue */
 .dark .bg-white\/60,
 .dark .bg-white\/75 {
-  background-color: rgba(13, 21, 39, 0.7) !important;
+  background-color: rgba(10, 25, 47, 0.7) !important;
 }
 
 .dark .bg-white\/95 {
-  background-color: rgba(13, 21, 39, 0.95) !important;
+  background-color: rgba(10, 25, 47, 0.95) !important;
 }
 
 .dark .hover\:bg-white\/60:hover {
-  background-color: rgba(13, 21, 39, 0.8) !important;
+  background-color: rgba(10, 25, 47, 0.8) !important;
 }
 
 .dark .border-brand-sand-dark {
-  border-color: #1e293b !important;
+  border-color: #1b356d !important;
 }
 
 .dark .border-brand-sand-dark\/50 {
-  border-color: rgba(30, 41, 59, 0.45) !important;
+  border-color: rgba(27, 53, 109, 0.45) !important;
 }
 
 .dark .border-brand-sand-dark\/60 {
-  border-color: rgba(30, 41, 59, 0.55) !important;
+  border-color: rgba(27, 53, 109, 0.55) !important;
 }
 
-.dark section.bg-white {
-  background-color: #050b14 !important;
-}
-
-/* Forms, inputs, select fields inside dark layout */
+/* Forms, inputs, select fields inside dark layout - IN THE BLUE */
 .dark input, 
 .dark select, 
 .dark textarea {
-  background-color: #0a1120 !important;
+  background-color: #0d1b3e !important;
   color: #ffffff !important;
-  border-color: #334155 !important;
+  border-color: #1b356d !important;
 }
 
 .dark input::placeholder, 
@@ -239,10 +240,10 @@ body {
   color: #475569 !important;
 }
 
-/* Dynamic solid card modifications for elements in dark mode */
+/* Dynamic solid card modifications for elements in dark mode - IN THE BLUE */
 .dark .liquid-glass-card {
   background: #112240 !important;
-  border: 1px solid #1e293b !important;
+  border: 1px solid #1b356d !important;
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45) !important;
 }
 
@@ -266,7 +267,7 @@ img:not([class*="h-"]):not([class*="w-"]) {
 
 .dark .glass-card {
   background: #112240 !important;
-  border: 1px solid #1e293b !important;
+  border: 1px solid #1b356d !important;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -360,6 +361,57 @@ img:not([class*="h-"]):not([class*="w-"]) {
 .animate-flicker {
   animation: custom-flicker 2.5s infinite;
 }
+
+/* Ensure Wilderness Title remains in glorious gradient blue in both light and dark modes */
+.wilderness-title,
+.dark .wilderness-title {
+  background-image: linear-gradient(to right, #0ea5e9, #38bdf8, #0284c7) !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Custom Glassmorphism Card Style requested by the user */
+.glassmorphism-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom Glassmorphism Drawer Style requested by the user */
+.glassmorphism-drawer {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+.glass {
+  background: rgba(30, 30, 30, 0.45);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Exclusive lightbox viewing mode: hide the Hero, Passport, Spotlight, and main Header */
+body.lightbox-active #home,
+body.lightbox-active #passport-club-section,
+body.lightbox-active #spotlight-section,
+body.lightbox-active #main-app-header {
+  display: none !important;
+}
+
+
+
+
+
 
 
 

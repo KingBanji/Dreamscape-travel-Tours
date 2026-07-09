@@ -1,5 +1,8 @@
-import { Compass, Mail, Phone, MapPin, Heart, Share2, Globe } from "lucide-react";
+import React, { useState } from "react";
+import { Compass, Mail, Phone, MapPin, Heart, Share2, Globe, Send, Sparkles, Check } from "lucide-react";
 import DreamscapeLogo from "./DreamscapeLogo";
+import { doc, setDoc } from "firebase/firestore";
+import { db, isFirebaseEnabled } from "../lib/firebase";
 
 interface FooterProps {
   onOpenAdmin?: () => void;
@@ -7,6 +10,48 @@ interface FooterProps {
 
 export default function Footer({ onOpenAdmin }: FooterProps) {
   const currentYear = new Date().getFullYear();
+
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(() => {
+    return localStorage.getItem("dreamscape_newsletter_subscribed") === "true";
+  });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    if (!email || !email.includes("@")) {
+      setErrorMsg("Please provide a valid email address.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (isFirebaseEnabled && db) {
+        const id = `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        await setDoc(doc(db, "newsletter_subscribers", id), {
+          id,
+          email: email.trim().toLowerCase(),
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      localStorage.setItem("dreamscape_newsletter_subscribed", "true");
+      setIsSubscribed(true);
+      setSuccessMsg("Welcome aboard! You are now subscribed to Dreamscape updates.");
+      setEmail("");
+    } catch (err) {
+      console.error("Newsletter subscription error:", err);
+      setErrorMsg("Failed to subscribe. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleNavClick = (id: string) => {
     const element = document.getElementById(id);
@@ -18,6 +63,64 @@ export default function Footer({ onOpenAdmin }: FooterProps) {
   return (
     <footer className="bg-brand-dark text-brand-sand border-t border-brand-teal/25 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Newsletter Subscription Row */}
+        <div className="pb-10 mb-10 border-b border-brand-teal/15 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="max-w-md text-center md:text-left">
+            <h3 className="font-serif text-lg font-bold text-white tracking-wide uppercase flex items-center justify-center md:justify-start gap-2">
+              <Sparkles className="w-5 h-5 text-brand-gold animate-pulse" />
+              Join the Wilderness Registry
+            </h3>
+            <p className="text-xs text-brand-sand/75 mt-1 leading-relaxed">
+              Sign up for weekly safari updates, conservation stories, and exclusive Zambia travel inspiration.
+            </p>
+          </div>
+          
+          <div className="w-full md:max-w-md">
+            {isSubscribed ? (
+              <div className="p-3 bg-brand-teal/10 border border-brand-teal/20 rounded-xl flex items-center gap-3 text-brand-teal">
+                <Check className="w-5 h-5 shrink-0" />
+                <span className="text-xs font-semibold">
+                  You are subscribed! Look forward to weekly wilderness updates.
+                </span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-sand/55" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your explorer email"
+                    disabled={isSubmitting}
+                    className="w-full pl-10 pr-4 py-2.5 bg-brand-medium/55 border border-brand-teal/20 rounded-xl text-xs text-white placeholder:text-brand-sand/40 focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal transition-all"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0 shadow-md shadow-brand-teal/10"
+                >
+                  <span>{isSubmitting ? "Subscribing..." : "Subscribe"}</span>
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            )}
+            {errorMsg && (
+              <p className="text-[10px] text-red-400 mt-2 ml-1">
+                {errorMsg}
+              </p>
+            )}
+            {successMsg && (
+              <p className="text-[10px] text-brand-teal mt-2 ml-1">
+                {successMsg}
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           
           {/* Brand pitch column */}
@@ -147,7 +250,6 @@ export default function Footer({ onOpenAdmin }: FooterProps) {
                 <Phone className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-1">
                   <a href="tel:+260975222136" className="hover:text-white transition-all">+260 975 222 136</a>
-                  <a href="tel:+260977671016" className="hover:text-white transition-all">+260 977 671 016</a>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">

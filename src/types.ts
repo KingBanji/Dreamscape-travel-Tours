@@ -95,6 +95,7 @@ export interface Booking {
   dateBooked: string;
   tourName?: string;
   paymentMethod?: "card" | "whatsapp";
+  individualJoiningOthers?: boolean;
 }
 
 export interface Review {

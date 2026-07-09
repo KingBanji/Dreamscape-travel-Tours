@@ -6,6 +6,69 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/images/logo dreamscape-1.png" />
+    <link rel="apple-touch-icon" href="/images/logo dreamscape-1.png" />
+
+    <!-- Suppress benign WebSocket HMR errors in sandbox -->
+    <script>
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && (
+          (event.reason.message && event.reason.message.includes('WebSocket')) ||
+          (event.reason.stack && event.reason.stack.includes('WebSocket')) ||
+          String(event.reason).includes('WebSocket') ||
+          String(event.reason).includes('websocket')
+        )) {
+          event.preventDefault();
+          console.warn('Suppressed HMR WebSocket error:', event.reason);
+        }
+      });
+      window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('WebSocket') || event.message.includes('websocket'))) {
+          event.preventDefault();
+          console.warn('Suppressed HMR WebSocket error:', event.message);
+        }
+      }, true);
+
+      // Disable right-click context menu to protect source code inspection
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
+
+      // Disable developer tools hotkeys and view-source shortcuts
+      document.addEventListener('keydown', function(e) {
+        // Prevent F12 (Developer Tools)
+        if (e.key === 'F12' || e.keyCode === 123) {
+          e.preventDefault();
+          return false;
+        }
+        // Prevent Ctrl+Shift+I / Cmd+Opt+I (Inspect)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+          e.preventDefault();
+          return false;
+        }
+        // Prevent Ctrl+Shift+J / Cmd+Opt+J (Console)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+          e.preventDefault();
+          return false;
+        }
+        // Prevent Ctrl+U / Cmd+Opt+U (View Source)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+          e.preventDefault();
+          return false;
+        }
+        // Prevent Ctrl+Shift+C / Cmd+Opt+C (Element Selector)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+          e.preventDefault();
+          return false;
+        }
+        // Prevent Ctrl+S / Cmd+S (Save Page)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    </script>
     
     <!-- Primary SEO Meta Tags -->
     <title>Dreamscape Tours ZM | Premium Zambia Safaris &amp; Travel Operator</title>
@@ -60,6 +123,7 @@
     </script>
   </head>
   <body>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

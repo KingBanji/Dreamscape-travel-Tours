@@ -148,12 +148,58 @@
         "totalSpent": { "type": "number" }
       },
       "required": ["name", "email", "createdAt", "totalBookings", "totalSpent"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "WhatsApp chat history between customers and support agents.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "The authenticated user's ID or unique anonymous session ID." },
+        "sender": { "type": "string", "enum": ["user", "agent"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "agentName": { "type": "string" }
+      },
+      "required": ["id", "userId", "sender", "text", "timestamp"]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "User subscription details for the safari newsletter.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "createdAt"]
+    },
+    "NewsletterDispatch": {
+      "title": "NewsletterDispatch",
+      "description": "Historical log of dispatched safari newsletters.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "content": { "type": "string" },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "recipientCount": { "type": "integer" }
+      },
+      "required": ["id", "subject", "content", "sentAt", "recipientCount"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "User profiles store."
+    },
+    "/newsletter_subscribers/{subscriberId}": {
+      "schema": "NewsletterSubscriber",
+      "description": "Newsletter subscribers registry."
+    },
+    "/dispatched_newsletters/{dispatchId}": {
+      "schema": "NewsletterDispatch",
+      "description": "Historical log of sent newsletter campaigns."
     },
     "/bookings/{bookingId}": {
       "schema": "Booking",
@@ -182,6 +228,10 @@
     "/clients/{clientId}": {
       "schema": "Client",
       "description": "Client statistics and directory database."
+    },
+    "/whatsapp_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat log history for WhatsApp interactions."
     }
   }
 }

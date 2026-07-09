@@ -260,6 +260,7 @@ export default function AttractionsDrawer({ isOpen, onClose }: AttractionsDrawer
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+            aria-label="Close Zambian attractions guide"
           >
             <X className="w-4 h-4" />
           </button>
@@ -290,6 +291,7 @@ export default function AttractionsDrawer({ isOpen, onClose }: AttractionsDrawer
                     ? "bg-brand-teal border-brand-teal text-white shadow-xs"
                     : "bg-white dark:bg-black/10 border-brand-sand-dark hover:bg-brand-sand/60 text-brand-dark/80 dark:text-slate-350"
                 }`}
+                aria-label={`Filter attractions by category ${cat}`}
               >
                 {cat}
               </button>
