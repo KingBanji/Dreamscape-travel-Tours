@@ -157,32 +157,53 @@ export default function PackagesDrawer({
                         : "border-brand-sand-dark/40 hover:border-brand-teal"
                     }`}
                   >
-                    {/* Clickable cover image */}
-                    {associatedDest && (associatedDest.image || (associatedDest.gallery && associatedDest.gallery.length > 0)) && (
+                     {/* Clickable cover image or playable video */}
+                    {pkg.videoUrl ? (
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          openLightbox(
-                            pkg.name,
-                            associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image,
-                            associatedDest.gallery
-                          );
                         }}
-                        className="relative w-full h-44 mb-4 rounded-xl overflow-hidden group/img-card border border-brand-sand-dark/20 shadow-sm cursor-zoom-in"
+                        className="relative w-full aspect-[16/9] mb-4 rounded-xl overflow-hidden border border-brand-teal/20 bg-black shadow-inner"
                       >
-                        <img
-                          src={associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover transition-transform duration-750 ease-out group-hover/img-card:scale-105"
-                          loading="lazy"
+                        <video
+                          src={pkg.videoUrl}
+                          className="w-full h-full object-contain"
+                          controls
+                          playsInline
+                          preload="metadata"
                         />
-                        {/* Small badge count of photos */}
-                        {associatedDest.gallery && associatedDest.gallery.length > 1 && (
-                          <div className="absolute bottom-3 right-3 bg-brand-dark/80 backdrop-blur-xs text-white border border-white/10 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider z-10">
-                            {associatedDest.gallery.length} PHOTOS
-                          </div>
-                        )}
+                        <div className="absolute top-2.5 left-2.5 bg-brand-gold text-brand-dark px-2.5 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider z-10 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-dark animate-pulse" />
+                          PROMO VIDEO
+                        </div>
                       </div>
+                    ) : (
+                      associatedDest && (associatedDest.image || (associatedDest.gallery && associatedDest.gallery.length > 0)) && (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(
+                              pkg.name,
+                              associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image,
+                              associatedDest.gallery
+                            );
+                          }}
+                          className="relative w-full h-44 mb-4 rounded-xl overflow-hidden group/img-card border border-brand-sand-dark/20 shadow-sm cursor-zoom-in"
+                        >
+                          <img
+                            src={associatedDest.gallery && associatedDest.gallery.length > 0 ? associatedDest.gallery[0] : associatedDest.image}
+                            alt={pkg.name}
+                            className="w-full h-full object-cover transition-transform duration-750 ease-out group-hover/img-card:scale-105"
+                            loading="lazy"
+                          />
+                          {/* Small badge count of photos */}
+                          {associatedDest.gallery && associatedDest.gallery.length > 1 && (
+                            <div className="absolute bottom-3 right-3 bg-brand-dark/80 backdrop-blur-xs text-white border border-white/10 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider z-10">
+                              {associatedDest.gallery.length} PHOTOS
+                            </div>
+                          )}
+                        </div>
+                      )
                     )}
 
                     <div className="flex justify-between items-start gap-3">
@@ -193,12 +214,12 @@ export default function PackagesDrawer({
                         <h4 className="font-serif text-sm sm:text-base font-bold text-brand-dark dark:text-white leading-tight uppercase flex flex-wrap items-center gap-1.5 pt-0.5">
                           {pkg.name}
                           {pkg.isFeatured && (
-                            <span className="text-[9px] font-mono font-bold bg-brand-gold/20 text-yellow-700 dark:text-brand-gold border border-brand-gold/30 px-1.5 py-0.5 rounded uppercase">
+                            <span className="text-[9px] font-mono font-bold bg-brand-gold/10 text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase">
                               Premier
                             </span>
                           )}
                           {pkg.isPreSale && (
-                            <span className="text-[9px] font-mono font-black bg-amber-500 text-brand-dark px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse inline-flex items-center gap-1">
+                            <span className="text-[9px] font-mono font-black bg-brand-teal text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse inline-flex items-center gap-1">
                               ⛺ {language === "fr" ? "PRÉ-VENTE" : "PRE-SALE"}
                             </span>
                           )}
@@ -221,8 +242,8 @@ export default function PackagesDrawer({
                     </div>
 
                     {pkg.isPreSale && (
-                      <div className="my-3 p-3.5 bg-amber-500/10 dark:bg-amber-500/5 rounded-xl border border-amber-500/30 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-black uppercase text-[10px] tracking-wide font-mono">
+                      <div className="my-3 p-3.5 bg-brand-teal/10 dark:bg-brand-teal/5 rounded-xl border border-brand-teal/30 space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-brand-teal font-black uppercase text-[10px] tracking-wide font-mono">
                           <Compass className="w-3.5 h-3.5 shrink-0" />
                           {language === "fr" ? "DÉTAILS DE LA PRÉ-VENTE CAMPING" : "CAMPING PRE-SALE DETAILS :"}
                         </div>
@@ -231,14 +252,14 @@ export default function PackagesDrawer({
                             ? `Ce forfait exclusif de camping sera disponible à partir de ${pkg.preSaleAvailability || "Mars 2027"}.` 
                             : `This exclusive camping tour is available starting ${pkg.preSaleAvailability || "March 2027"}.`}
                         </p>
-                        <div className="pt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-amber-500/20 text-[11px] font-mono font-medium">
+                        <div className="pt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-brand-teal/20 text-[11px] font-mono font-medium">
                           <span className="text-brand-dark/75 dark:text-slate-300">
                             📢 {language === "fr" ? "Pré-réservation :" : "Pre-booking :"}{" "}
                             <strong className="text-brand-teal font-extrabold text-xs">{formatAmount(pkg.preSalePriceZMW || 1400)}</strong>
                           </span>
                           <span className="text-brand-dark/75 dark:text-slate-350">
                             ⏳ {language === "fr" ? "Après le 6 mars :" : "After March 6 :"}{" "}
-                            <strong className="text-amber-600 dark:text-amber-400 font-extrabold text-xs">{formatAmount(pkg.regularPriceZMW || 3800)}</strong>
+                            <strong className="text-brand-teal font-extrabold text-xs">{formatAmount(pkg.regularPriceZMW || 3800)}</strong>
                           </span>
                         </div>
                       </div>
@@ -266,13 +287,13 @@ export default function PackagesDrawer({
                     {/* What to carry list */}
                     {pkg.whatToCarry && pkg.whatToCarry.length > 0 && (
                       <div className="space-y-2 mt-4 p-3.5 bg-brand-sand/50 dark:bg-slate-800/40 rounded-xl border border-brand-sand-dark/30 dark:border-slate-700/50">
-                        <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-amber-700 dark:text-amber-400 block font-black flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-brand-teal block font-black flex items-center gap-1.5">
                           🎒 {language === "fr" ? "QUE PRENDRE AVEC VOUS :" : "RECOMMENDED GEAR & PACKING CHECKLIST :"}
                         </span>
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                           {pkg.whatToCarry.map((item, idx) => (
                             <li key={idx} className="flex items-center gap-2 text-xs text-brand-dark/85 dark:text-slate-200 leading-normal font-medium bg-white/70 dark:bg-slate-950/40 py-1 px-2.5 rounded-lg border border-brand-sand-dark/20 dark:border-slate-800/30">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0" />
                               <span>{item}</span>
                             </li>
                           ))}
@@ -313,7 +334,7 @@ export default function PackagesDrawer({
                                 </div>
                                 <div className="col-span-full pt-1.5 border-t border-brand-sand-dark/10">
                                   <span className="text-brand-dark/50 dark:text-slate-400 font-bold block uppercase text-[8px] tracking-wide">Unlock Pre-requisite :</span>
-                                  <span className="text-amber-700 dark:text-amber-400 font-bold">{pkg.unlockCondition}</span>
+                                  <span className="text-brand-teal font-bold">{pkg.unlockCondition}</span>
                                 </div>
                               </div>
                             )}
@@ -324,7 +345,7 @@ export default function PackagesDrawer({
                                 <span className="text-brand-dark/50 dark:text-slate-400 font-bold block uppercase text-[8px] tracking-wide">Deposit & Dynamic Group Restrictions :</span>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
                                   <span>Standard: <strong className="text-brand-teal font-bold">{formatAmount(pkg.pricingDetails.standard)}</strong></span>
-                                  <span>Deposit: <strong className="text-amber-600 dark:text-amber-400 font-bold">{formatAmount(pkg.pricingDetails.deposit)} ({pkg.pricingDetails.depositPercent}%)</strong></span>
+                                  <span>Deposit: <strong className="text-brand-gold font-bold">{formatAmount(pkg.pricingDetails.deposit)} ({pkg.pricingDetails.depositPercent}%)</strong></span>
                                   <span>Min Travelers: <strong className="font-bold">{pkg.pricingDetails.minGroup} visitors</strong></span>
                                   <span>Max Travelers: <strong className="font-bold">{pkg.pricingDetails.maxGroup} visitors</strong></span>
                                 </div>
@@ -349,8 +370,7 @@ export default function PackagesDrawer({
                                 </div>
                               </div>
                             )}
-
-                            {/* Detailed Includes & Excludes */}
+                             {/* Detailed Includes & Excludes */}
                             {(pkg.detailedIncludes || pkg.detailedExcludes) && (
                               <div className="grid grid-cols-1 gap-3.5 pt-1">
                                 {pkg.detailedIncludes && (
@@ -370,13 +390,13 @@ export default function PackagesDrawer({
                                 )}
                                 {pkg.detailedExcludes && (
                                   <div className="space-y-1.5">
-                                    <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-rose-500 block font-black">
+                                    <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-brand-teal block font-black">
                                       ✕ Exclusions & Not Compromised Services :
                                     </span>
-                                    <ul className="space-y-1.5 bg-rose-500/5 p-2 rounded-lg border border-rose-500/10">
+                                    <ul className="space-y-1.5 bg-brand-teal/5 p-2 rounded-lg border border-brand-teal/10">
                                       {pkg.detailedExcludes.map((exc, idx) => (
                                         <li key={idx} className="flex gap-1.5 text-[10.5px] items-start text-brand-dark/95 dark:text-slate-200 leading-normal">
-                                          <span className="text-rose-500 font-extrabold shrink-0">✕</span>
+                                          <span className="text-brand-teal font-extrabold shrink-0">✕</span>
                                           <span>{exc}</span>
                                         </li>
                                       ))}
@@ -388,8 +408,8 @@ export default function PackagesDrawer({
 
                             {/* Policies (Cancellation, Weather, Physical fitness) */}
                             {pkg.policy && (
-                              <div className="space-y-2 p-3 bg-indigo-500/5 dark:bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-[10.5px] leading-relaxed text-brand-dark dark:text-slate-300">
-                                <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-indigo-500 block font-black">
+                              <div className="space-y-2 p-3 bg-brand-gold/5 dark:bg-brand-gold/5 rounded-xl border border-brand-gold/20 text-[10.5px] leading-relaxed text-brand-dark dark:text-slate-300">
+                                <span className="text-[9px] font-mono uppercase tracking-[0.1em] text-brand-gold block font-black">
                                   🛡️ STRICT TOUR POLICIES & COMPLIANCE :
                                 </span>
                                 <div className="space-y-1.5 mt-1 font-medium text-brand-dark/90 dark:text-slate-350">

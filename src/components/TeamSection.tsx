@@ -11,12 +11,36 @@ export default function TeamSection() {
       roleEn: "Founder & Lead Director",
       roleFr: "Fondateur & Directeur Principal",
       image: "/images/Banji Luyando Co Founder & Director.jpeg",
-      briefEn: "An avid conservationist and Zambian travel mastermind with over a decade of luxury safari operations experience. Banji founded Dreamscape Tours with a mission to showcase the pristine, untouched beauty of Zambia's wild wonders.",
-      briefFr: "Un ardent défenseur de l'environnement et un maître de voyage zambien avec plus d'une décennie d'expérience dans les safaris de luxe. Banji a fondé Dreamscape Tours avec pour mission de faire découvrir la beauté sauvage de la Zambie.",
+      briefEn: "An avid conservationist and Zambian travel mastermind with 3 years of luxury safari operations experience. Banji founded Dreamscape Tours with a mission to showcase the pristine, untouched beauty of Zambia's wild wonders.",
+      briefFr: "Un ardent défenseur de l'environnement et un maître de voyage zambien avec 3 ans d'expérience dans les safaris de luxe. Banji a fondé Dreamscape Tours avec pour mission de faire découvrir la beauté sauvage de la Zambie.",
       email: "luyandobanjilb@gmail.com",
       phone: "+260975222136",
       badgesEn: ["Lead Expeditionist", "Wildlife Conservationist"],
       badgesFr: ["Éclaireur en Chef", "Protecteur de la Faune"]
+    },
+    {
+      name: "Kalila Chella",
+      roleEn: "Lead Travel Consultant",
+      roleFr: "Consultante en Voyage Principale",
+      image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&h=500&q=80",
+      briefEn: "A passionate and knowledgeable travel specialist with 2 years of experience crafting bespoke journeys, managing guest relations, and highlighting Zambia's magnificent wonders.",
+      briefFr: "Une spécialiste du voyage passionnée et compétente avec 2 ans d'expérience dans l'élaboration de voyages sur mesure, la gestion des relations clients et la mise en valeur des merveilles de la Zambie.",
+      email: "info@dreamscapetourszm.com",
+      phone: "+260571139345",
+      badgesEn: ["Itinerary Specialist", "Guest Relations"],
+      badgesFr: ["Spécialiste de l'Itinéraire", "Relations Invités"]
+    },
+    {
+      name: "Mizinga Cheelo",
+      roleEn: "Tour Operations Manager",
+      roleFr: "Directrice des Opérations de Voyage",
+      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&h=500&q=80",
+      briefEn: "A dedicated operations manager with 2 years of experience streamlining complex safari logistics, organizing luxury excursions, and ensuring every client experiences the peak hospitality of Zambia.",
+      briefFr: "Une directrice des opérations dévouée avec 2 ans d'expérience dans la rationalisation de la logistique complexe des safaris, l'organisation d'excursions de luxe et la garantie que chaque client bénéficie de l'hospitalité maximale de la Zambie.",
+      email: "info@dreamscapetourszm.com",
+      phone: "+260973331843",
+      badgesEn: ["Operations Expert", "Guest Logistics"],
+      badgesFr: ["Experte en Opérations", "Logistique des Invités"]
     }
   ];
 
@@ -42,7 +66,7 @@ export default function TeamSection() {
         </div>
 
         {/* Team Grid */}
-        <div className="flex justify-center max-w-2xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {teamMembers.map((member, idx) => (
             <motion.div
               key={member.name}
@@ -50,10 +74,10 @@ export default function TeamSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: idx * 0.15 }}
-              className="liquid-glass-card group overflow-hidden flex flex-col md:flex-row items-stretch gap-6 border border-brand-sand-dark/60 bg-white/50 p-5 rounded-3xl shadow-xl hover:shadow-2xl hover:bg-white/80 transition-all duration-300"
+              className="liquid-glass-card group overflow-hidden flex flex-col items-stretch gap-6 border border-brand-sand-dark/60 bg-white/50 p-5 rounded-3xl shadow-xl hover:shadow-2xl hover:bg-white/80 transition-all duration-300"
             >
               {/* Image Frame with Golden Border Aspect */}
-              <div className="w-full md:w-44 h-56 md:h-auto rounded-2xl overflow-hidden shrink-0 border-2 border-brand-gold/20 shadow-md relative group-hover:border-brand-gold/50 transition-colors duration-300">
+              <div className="w-full h-64 rounded-2xl overflow-hidden shrink-0 border-2 border-brand-gold/20 shadow-md relative group-hover:border-brand-gold/50 transition-colors duration-300">
                 <img
                   src={member.image}
                   alt={member.name}

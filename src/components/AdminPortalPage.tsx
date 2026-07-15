@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Shield, Key, Sparkles, Compass, Users, DollarSign, Mail, 
-  Trash2, Plus, Edit, Check, X, ArrowLeft, RefreshCw, Send, HelpCircle
+  Trash2, Plus, Edit, Check, X, ArrowLeft, RefreshCw, Send, HelpCircle,
+  MessageSquare
 } from "lucide-react";
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid 
@@ -10,6 +11,7 @@ import { TOUR_PACKAGES } from "../data/travelData";
 import { useAuthAndData } from "../lib/FirebaseContext";
 import { useLanguage } from "../lib/LanguageContext";
 import { useCurrency } from "../lib/CurrencyContext";
+import { useGoogleWorkspace } from "../lib/GoogleWorkspaceContext";
 import { db, isFirebaseEnabled, handleFirestoreError, OperationType, triggerWelcomeEmail } from "../lib/firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
 
@@ -18,7 +20,8 @@ interface AdminPortalPageProps {
 }
 
 export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) {
-  const { user, bookings, signIn } = useAuthAndData();
+  const { user, bookings, signIn, tours: localTours, publishTour, deleteTour } = useAuthAndData();
+  const { accessToken, sendEmailViaGmail, signInWithWorkspace, listChatSpaces, sendChatMessage } = useGoogleWorkspace();
   const { language } = useLanguage();
   const { formatAmount } = useCurrency();
   
@@ -34,7 +37,17 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
   const [newCustomPasscode, setNewCustomPasscode] = useState("");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"tours" | "inquiries" | "sales" | "clients" | "newsletter">("tours");
+  const [activeTab, setActiveTab] = useState<"tours" | "inquiries" | "sales" | "clients" | "newsletter" | "google_chat">("tours");
+
+  // Google Chat integration states
+  const [chatSpaces, setChatSpaces] = useState<any[]>([]);
+  const [selectedSpace, setSelectedSpace] = useState<string>(() => {
+    return localStorage.getItem("dreamscape_selected_chat_space") || "";
+  });
+  const [chatMessageText, setChatMessageText] = useState("");
+  const [isFetchingSpaces, setIsFetchingSpaces] = useState(false);
+  const [isSendingChatMessage, setIsSendingChatMessage] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   // Clients directory state
   const [clients, setClients] = useState<any[]>([]);
@@ -48,11 +61,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
   const [dispatchContent, setDispatchContent] = useState("");
   const [isDispatching, setIsDispatching] = useState(false);
 
-  // Tours store state (loads from memory & permits direct additions/deletions/edits)
-  const [localTours, setLocalTours] = useState<any[]>(() => {
-    const saved = localStorage.getItem("dreamscape_managed_tours");
-    return saved ? JSON.parse(saved) : TOUR_PACKAGES;
-  });
+  // Tours state is now globally managed and synchronized via useAuthAndData()
 
   // Tour form states
   const [editingTourId, setEditingTourId] = useState<string | null>(null);
@@ -85,6 +94,32 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     });
   }, [newTourDuration]);
 
+  // Load Google Chat spaces helper
+  const handleLoadChatSpaces = async () => {
+    if (!accessToken) return;
+    setIsFetchingSpaces(true);
+    setChatError("");
+    try {
+      const spaces = await listChatSpaces();
+      setChatSpaces(spaces);
+      if (spaces.length > 0 && !selectedSpace) {
+        setSelectedSpace(spaces[0].name);
+        localStorage.setItem("dreamscape_selected_chat_space", spaces[0].name);
+      }
+    } catch (err: any) {
+      console.error("Failed fetching spaces", err);
+      setChatError(err?.message || "Failed to retrieve Google Chat spaces.");
+    } finally {
+      setIsFetchingSpaces(false);
+    }
+  };
+
+  useEffect(() => {
+    if (accessToken) {
+      handleLoadChatSpaces();
+    }
+  }, [accessToken]);
+
   // Inquiries database state
   const [inquiries, setInquiries] = useState<any[]>([]);
 
@@ -92,7 +127,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
 
   // Check admin email
-  const isAdminEmail = user?.email === "luyandobanjilb@gmail.com";
+  const isAdminEmail = user?.email === "luyandobanjilb@gmail.com" || user?.isAdmin || user?.role === "admin" || localStorage.getItem("dreamscape_is_admin") === "true";
 
   useEffect(() => {
     if (isAdminEmail) {
@@ -102,7 +137,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
 
   // Load inquiries live from Firestore (with localstorage fallback)
   useEffect(() => {
-    if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
+    if (isFirebaseEnabled && db && user && isAdminEmail) {
       const unsub = onSnapshot(collection(db, "inquiries"), (snapshot) => {
         const list: any[] = [];
         snapshot.forEach((snap) => {
@@ -428,8 +463,76 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     };
 
     try {
+      let activeToken = accessToken;
+
+      if (!activeToken) {
+        const wantReal = window.confirm(
+          "Google Workspace GMail connection is not active.\n\n" +
+          "• Click OK to sign in with Google Workspace to send REAL broadcast emails straight to your subscribers now.\n" +
+          "• Click Cancel to perform an offline simulation dispatch."
+        );
+        if (wantReal) {
+          try {
+            activeToken = await signInWithWorkspace();
+          } catch (authErr: any) {
+            console.warn("On-the-fly workspace authorization skipped or failed:", authErr);
+            setIsDispatching(false);
+            return;
+          }
+        }
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const sub of subscribers) {
+        if (sub.email) {
+          try {
+            if (activeToken) {
+              const newsletterHtml = `
+                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 32px; background-color: #fcfbf7; border-radius: 20px; border: 1px solid #e1dcce; max-width: 600px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                  <div style="text-align: center; margin-bottom: 28px; border-bottom: 1px solid #f0ede6; padding-bottom: 20px;">
+                    <h2 style="color: #115e59; font-family: serif; font-size: 24px; font-weight: bold; margin: 0 0 6px 0; letter-spacing: 0.5px; text-transform: uppercase;">Dreamscape Tours Zambia</h2>
+                    <span style="font-size: 10px; text-transform: uppercase; background-color: #fef3c7; color: #b45309; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-family: monospace; border: 1px solid #fde68a;">Official Wilderness Gazette</span>
+                  </div>
+                  
+                  <h3 style="color: #1a2e26; font-family: serif; font-size: 18px; font-weight: bold; margin-bottom: 16px; line-height: 1.4;">${dispatchSubject.trim()}</h3>
+                  
+                  <div style="font-size: 14px; color: #3f3f46; line-height: 1.7; white-space: pre-wrap; margin-bottom: 28px;">
+                    ${dispatchContent.trim()}
+                  </div>
+
+                  <div style="background-color: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; padding: 16px; margin-bottom: 28px; text-align: center;">
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #166534; font-weight: bold;">Ready to secure your spot?</p>
+                    <p style="margin: 0; font-size: 11px; color: #15803d; line-height: 1.5;">Contact our certified expert guide Banji Luyando on WhatsApp or visit our online explorer desk to request custom quotes or dates!</p>
+                  </div>
+                  
+                  <div style="text-align: center; border-top: 1px solid #f0ede6; padding-top: 20px; font-size: 10px; color: #a1a1aa; font-family: monospace;">
+                    You are receiving this because you registered at the Dreamscape Wilderness Registry.<br/>
+                    © ${new Date().getFullYear()} Dreamscape Tours Zambia. All Rights Reserved.
+                  </div>
+                </div>
+              `;
+              await sendEmailViaGmail(sub.email, dispatchSubject.trim(), newsletterHtml, activeToken);
+              sentCount++;
+            } else {
+              console.log(`[NEWSLETTER SIMULATOR] Dispatching "${dispatchSubject.trim()}" to subscriber: ${sub.email}`);
+              sentCount++;
+            }
+          } catch (mailErr) {
+            console.error(`Failed to send email to ${sub.email}:`, mailErr);
+            failedCount++;
+          }
+        }
+      }
+
       if (isFirebaseEnabled && db && user && user.email === "luyandobanjilb@gmail.com") {
-        await setDoc(doc(db, "dispatched_newsletters", dispatchId), newDispatch);
+        await setDoc(doc(db, "dispatched_newsletters", dispatchId), {
+          ...newDispatch,
+          sentCount,
+          failedCount,
+          status: failedCount === 0 ? "Delivered" : "Partial Delivery"
+        });
       }
       
       const updated = [newDispatch, ...dispatches];
@@ -439,13 +542,41 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
       // Clear form
       setDispatchSubject("");
       setDispatchContent("");
-      setSuccessMsg(`Successfully dispatched "${newDispatch.subject}" to ${newDispatch.recipientCount} subscriber(s)!`);
-      setTimeout(() => setSuccessMsg(""), 5000);
+      
+      if (activeToken) {
+        setSuccessMsg(`Successfully sent "${newDispatch.subject}" to ${sentCount} subscriber(s) via Google Mail API!${failedCount > 0 ? ` (${failedCount} failed)` : ""}`);
+      } else {
+        setSuccessMsg(`Successfully dispatched "${newDispatch.subject}" locally to ${sentCount} subscriber(s)! (Connect Google Workspace above to transmit actual emails).`);
+      }
+      setTimeout(() => setSuccessMsg(""), 7000);
     } catch (err) {
       console.error("Newsletter dispatch error:", err);
-      alert("Failed to save newsletter dispatch log.");
+      alert("Failed to complete newsletter broadcast.");
     } finally {
       setIsDispatching(false);
+    }
+  };
+
+  const handleSendChatManualMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSpace) {
+      alert("Please select a Google Chat space first.");
+      return;
+    }
+    if (!chatMessageText.trim()) return;
+
+    setIsSendingChatMessage(true);
+    setChatError("");
+    try {
+      await sendChatMessage(selectedSpace, chatMessageText.trim());
+      setSuccessMsg("Successfully posted message to Google Chat space!");
+      setChatMessageText("");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err: any) {
+      console.error("Failed sending Google Chat message", err);
+      setChatError(err?.message || "Failed to post message to Google Chat.");
+    } finally {
+      setIsSendingChatMessage(false);
     }
   };
 
@@ -466,10 +597,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
     }
   };
 
-  // Persist managed tours to local storage whenever they change
-  useEffect(() => {
-    localStorage.setItem("dreamscape_managed_tours", JSON.stringify(localTours));
-  }, [localTours]);
+  // Persist managed tours is handled by public snapshot listeners in FirebaseContext
 
   // Handle Passcode login submit
   const handlePasscodeSubmit = (e: React.FormEvent) => {
@@ -566,7 +694,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
       ]
     };
 
-    setLocalTours([newTour, ...localTours]);
+    publishTour(newTour);
     resetTourForm();
     setSuccessMsg("Created tour draft on /api/tours successfully!");
     setTimeout(() => setSuccessMsg(""), 4000);
@@ -574,8 +702,7 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
 
   const handleDeleteTour = (tourId: string) => {
     if (window.confirm("Permanently delete this tour package from active packages?")) {
-      const filtered = localTours.filter((t) => t.id !== tourId);
-      setLocalTours(filtered);
+      deleteTour(tourId);
     }
   };
 
@@ -617,7 +744,10 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
       return t;
     });
 
-    setLocalTours(updated);
+    const updatedTour = updated.find(t => t.id === editingTourId);
+    if (updatedTour) {
+      publishTour(updatedTour);
+    }
     resetTourForm();
     setSuccessMsg("Updated tour packet successfully.");
     setTimeout(() => setSuccessMsg(""), 4000);
@@ -1020,6 +1150,18 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
               >
                 <Sparkles className="w-4 h-4" />
                 Newsletter Registry ({subscribers.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab("google_chat")}
+                className={`flex-1 py-3 text-xs font-mono uppercase tracking-wider rounded-xl font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === "google_chat"
+                    ? "bg-brand-gold text-brand-dark shadow-md border border-brand-teal/20"
+                    : "text-brand-sand/70 hover:text-white"
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Google Chat {chatSpaces.length > 0 ? `(${chatSpaces.length})` : ""}
               </button>
             </div>
 
@@ -1624,6 +1766,41 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
                           <Send className="w-4 h-4 text-brand-gold" />
                           Compose Broadcast Campaign
                         </h5>
+
+                        {accessToken ? (
+                          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs flex items-center justify-between gap-3 font-mono">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                              <span>GOOGLE WORKSPACE DISPATCHER: ACTIVE</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-400/70">Broadcasting via GMail API</span>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-brand-sand rounded-xl text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 font-mono text-amber-400 font-bold uppercase tracking-wider">
+                                <span className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
+                                <span>WORKSPACE CONNECTION PENDING</span>
+                              </div>
+                              <p className="text-[11px] text-brand-sand/70 leading-relaxed max-w-lg">
+                                Transmit real, beautifully styled emails straight to all your newsletter subscribers by activating your Google Workspace connection.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await signInWithWorkspace();
+                                } catch (err: any) {
+                                  alert(err?.message || "Failed to authenticate Google Workspace.");
+                                }
+                              }}
+                              className="px-4 py-2 shrink-0 bg-amber-500 hover:bg-amber-400 text-brand-dark font-mono text-[10px] uppercase tracking-wider rounded-lg font-extrabold transition-all cursor-pointer shadow-lg active:scale-95"
+                            >
+                              Connect GMail
+                            </button>
+                          </div>
+                        )}
                         
                         <form onSubmit={handleSendNewsletter} className="space-y-4">
                           <div>
@@ -1791,6 +1968,232 @@ export default function AdminPortalPage({ onBackToMain }: AdminPortalPageProps) 
                             </div>
                           );
                         })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 6: GOOGLE CHAT INTEGRATION */}
+              {activeTab === "google_chat" && (
+                <div className="space-y-8 animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                    <div>
+                      <h4 className="font-serif text-xl font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-brand-gold" />
+                        Google Chat Workspace Control
+                      </h4>
+                      <p className="text-xs text-brand-sand/70 mt-1">
+                        Connect, dispatch custom alert messages, and monitor workspace space notifications instantly.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* LEFT COLUMN - WORKSPACE & DISPATCH */}
+                    <div className="lg:col-span-2 space-y-8">
+                      
+                      {/* Connection and setup card */}
+                      <div className="bg-brand-dark/50 border border-brand-teal/15 p-6 rounded-2xl space-y-4">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-brand-gold font-bold flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-brand-gold" />
+                          Google Workspace Chat Authentication
+                        </h5>
+
+                        {accessToken ? (
+                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs space-y-2 font-mono">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                                <span>CHAT INTEGRATION CONNECTED</span>
+                              </div>
+                              <span className="text-[10px] text-emerald-400/70">Authenticated via OAuth</span>
+                            </div>
+                            <p className="text-[11px] text-brand-sand/60 font-sans mt-2 normal-case leading-relaxed">
+                              Your account is verified with permissions to read accessible spaces and compose alert messages. Below you can select your primary space.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-brand-sand rounded-xl text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 font-mono text-amber-400 font-bold uppercase tracking-wider">
+                                <span className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
+                                <span>WORKSPACE CONNECTION PENDING</span>
+                              </div>
+                              <p className="text-[11px] text-brand-sand/70 leading-relaxed max-w-lg">
+                                Grant secure access to read your Google Chat spaces and authorize dispatching real-time booking alerts.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await signInWithWorkspace();
+                                } catch (err: any) {
+                                  alert(err?.message || "Failed to authenticate Google Workspace.");
+                                }
+                              }}
+                              className="px-4 py-2 shrink-0 bg-amber-500 hover:bg-amber-400 text-brand-dark font-mono text-[10px] uppercase tracking-wider rounded-lg font-extrabold transition-all cursor-pointer shadow-lg active:scale-95"
+                            >
+                              Connect Google Chat
+                            </button>
+                          </div>
+                        )}
+
+                        {accessToken && (
+                          <div className="space-y-4 pt-2">
+                            <div>
+                              <label className="block text-[10px] font-mono uppercase text-brand-sand/60 mb-2">
+                                Select Notification Space Target
+                              </label>
+                              {isFetchingSpaces ? (
+                                <div className="flex items-center gap-2 py-2 text-xs font-mono text-brand-sand/50">
+                                  <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />
+                                  Scanning available spaces...
+                                </div>
+                              ) : chatSpaces.length === 0 ? (
+                                <div className="space-y-2">
+                                  <p className="text-xs text-amber-400 font-mono italic">No spaces found or no permissions in your Google Workspace directory.</p>
+                                  <button
+                                    type="button"
+                                    onClick={handleLoadChatSpaces}
+                                    className="px-3 py-1.5 bg-brand-teal/10 hover:bg-brand-teal/20 border border-brand-teal/20 text-brand-teal rounded-lg font-mono text-[10px] uppercase transition-colors"
+                                  >
+                                    Retry Space Scan
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {chatSpaces.map((space) => {
+                                    const isSelected = selectedSpace === space.name;
+                                    return (
+                                      <button
+                                        key={space.name}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedSpace(space.name);
+                                          localStorage.setItem("dreamscape_selected_chat_space", space.name);
+                                          setSuccessMsg(`Notification target updated to ${space.displayName || space.name}`);
+                                          setTimeout(() => setSuccessMsg(""), 4000);
+                                        }}
+                                        className={`p-3.5 rounded-xl text-left border transition-all duration-200 cursor-pointer ${
+                                          isSelected
+                                            ? "bg-brand-teal/15 border-brand-teal text-white shadow-md shadow-brand-teal/5"
+                                            : "bg-[#030712]/40 border-white/5 text-brand-sand/70 hover:bg-[#030712]/80 hover:text-white"
+                                        }`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold font-mono leading-tight truncate">
+                                              {space.displayName || "Unnamed Space"}
+                                            </p>
+                                            <p className="text-[9px] font-mono text-brand-sand/40 mt-1 truncate">
+                                              Type: {space.spaceType || "N/A"}
+                                            </p>
+                                          </div>
+                                          {isSelected && (
+                                            <span className="w-2 h-2 bg-brand-gold rounded-full shrink-0 animate-pulse" title="Selected Target" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Send Message Card */}
+                      {accessToken && selectedSpace && (
+                        <div className="bg-brand-dark/50 border border-brand-teal/15 p-6 rounded-2xl space-y-4">
+                          <h5 className="text-xs font-mono uppercase tracking-widest text-brand-gold font-bold flex items-center gap-2">
+                            <Send className="w-4 h-4 text-brand-gold" />
+                            Dispatch Manual Alert Message
+                          </h5>
+
+                          <form onSubmit={handleSendChatManualMessage} className="space-y-4">
+                            <div>
+                              <label className="block text-[10px] font-mono uppercase text-brand-sand/60 mb-1">
+                                Message Content
+                              </label>
+                              <textarea
+                                required
+                                rows={4}
+                                placeholder="Write an instant notice to the selected Google Chat room, e.g. 'Notice: Shuttle maintenance scheduled for tomorrow morning.'"
+                                value={chatMessageText}
+                                onChange={(e) => setChatMessageText(e.target.value)}
+                                className="w-full bg-[#030712] border border-brand-teal/20 focus:border-brand-gold/50 rounded-xl py-2.5 px-3.5 text-xs outline-none text-white transition-all font-sans leading-relaxed placeholder:text-brand-sand/30 resize-none"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] font-mono text-brand-sand/40">
+                                Target Space ID: <span className="text-brand-teal">{selectedSpace.split("/").pop()}</span>
+                              </span>
+                              <button
+                                type="submit"
+                                disabled={isSendingChatMessage || !chatMessageText.trim()}
+                                className="px-6 py-2.5 bg-brand-gold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-brand-dark font-mono text-xs uppercase tracking-wider rounded-xl font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-brand-gold/10"
+                              >
+                                <span>{isSendingChatMessage ? "Sending..." : "Dispatch Alert"}</span>
+                                <Send className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+
+                      {chatError && (
+                        <div className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-mono">
+                          🚨 Error: {chatError}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT COLUMN - SYSTEM INSIGHTS */}
+                    <div className="space-y-6">
+                      <div className="bg-brand-dark/50 border border-brand-teal/15 p-6 rounded-2xl space-y-4">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-brand-teal font-bold">
+                          Automated Notification Channels
+                        </h5>
+                        <p className="text-xs text-brand-sand/70 leading-relaxed">
+                          Once a Google Chat target space is configured and connected, the system automatically posts rich informational summaries to keep your operations desk synced.
+                        </p>
+
+                        <div className="space-y-3 pt-2">
+                          <div className="p-3 bg-[#030712]/30 border border-white/5 rounded-xl space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-white font-mono uppercase">Adventure Inquiries</span>
+                              <span className="text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-extrabold">Active</span>
+                            </div>
+                            <p className="text-[10px] text-brand-sand/60 leading-normal">
+                              Client queries from the main inquiry desk are parsed and structured immediately into real-time Chat alerts containing client contact details and messages.
+                            </p>
+                          </div>
+
+                          <div className="p-3 bg-[#030712]/30 border border-white/5 rounded-xl space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-white font-mono uppercase">Safari Bookings</span>
+                              <span className="text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-extrabold">Active</span>
+                            </div>
+                            <p className="text-[10px] text-brand-sand/60 leading-normal">
+                              Whenever a traveler completes a safari package reservation, a message with traveler name, email, headcount, safari package name, and itinerary date is dispatched.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-brand-dark/30 border border-brand-teal/10 p-6 rounded-2xl space-y-3">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-brand-sand/50 font-bold">
+                          Quick Integration Help
+                        </h5>
+                        <ul className="text-[11px] text-brand-sand/60 space-y-2 list-disc list-inside leading-relaxed">
+                          <li>Ensure Google Chat app permissions are granted on your Google Account consent screen.</li>
+                          <li>Create or configure a space in Google Chat workspace before initiating scan.</li>
+                          <li>Keep this tab open while you receive bookings or inquiries to verify automatic dispatches in real-time.</li>
+                        </ul>
                       </div>
                     </div>
                   </div>

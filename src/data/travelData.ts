@@ -279,6 +279,7 @@ export const TOUR_PACKAGES: TourPackage[] = [
     pricePerPerson: 26,
     destinationId: "shantumbu-falls",
     isFeatured: true,
+    videoUrl: "/videos/download.mp4",
     features: [
       "Guided rocky hills & scenic escarpment trekking",
       "Shower baths under pristine waterfall cascades",
@@ -595,6 +596,40 @@ export const TOUR_PACKAGES: TourPackage[] = [
         title: "Farewell African Sun",
         description: "Share packing stories over breakfast, transfer to Livingstone International Airport for your trip home.",
         meals: "Breakfast"
+      }
+    ]
+  },
+  {
+    id: "zambezi-boat-cruise-chills",
+    name: "Boat cruise and chills kafue zambia",
+    tagline: "Enjoy drinks, snacks, a scenic boat cruise, interactive games, transport to and from Lusaka, and a delicious braai",
+    durationDays: 1,
+    pricePerPerson: 30,
+    preSalePriceZMW: 560,
+    regularPriceZMW: 750,
+    destinationId: "lower-zambezi",
+    isFeatured: true,
+    features: [
+      "Drinks & refreshing beverages",
+      "Delicious snacks & finger foods",
+      "Scenic river Boat Cruise",
+      "Fun interactive games",
+      "Convenient transport to and from Lusaka",
+      "Freshly prepared outdoor Braai"
+    ],
+    whatToCarry: [
+      "Sun hat & sunglasses",
+      "Camera or smartphone",
+      "Light evening windbreaker",
+      "Binoculars",
+      "Suncream lotion"
+    ],
+    itinerary: [
+      {
+        day: 1,
+        title: "Sunset Boarding & Escarpment Chills",
+        description: "Board our luxury double-decker boat in the late afternoon. Unwind on deck with cold drinks as we navigate the quiet hippo channels. Watch a mesmerizing sunset with music and bites, then head back under starry skies.",
+        meals: "Gourmet Snacks / Sundowners"
       }
     ]
   }

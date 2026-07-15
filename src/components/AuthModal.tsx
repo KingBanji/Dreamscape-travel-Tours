@@ -235,8 +235,13 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
       await signIn();
       onClose();
     } catch (e: any) {
-      console.error("Google Web Auth Exception Caught in Modal:", e);
       const errStr = e && typeof e === "object" ? (e.message || JSON.stringify(e)) : String(e);
+      const errCode = e?.code || "";
+      if (errCode === "auth/popup-closed-by-user" || errCode === "auth/popup-blocked" || errCode === "auth/cancelled-popup-request") {
+        console.warn("Google Web Auth Exception Caught in Modal (Canceled/Blocked):", e);
+      } else {
+        console.error("Google Web Auth Exception Caught in Modal:", e);
+      }
       let localizedError = language === "fr"
         ? `L'authentification Google a échoué : ${errStr}`
         : `Google Authentication Error: ${errStr}`;
@@ -307,7 +312,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-brand-dark/90 backdrop-blur-md z-0"
+        className="fixed inset-0 bg-brand-dark/95 backdrop-blur-md z-0"
       />
 
       {/* Main Drawer or Dialog Body */}
@@ -315,7 +320,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative bg-brand-dark border border-brand-teal/20 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh] sm:max-h-[90vh] z-10 scrollbar-thin scrollbar-thumb-brand-teal/20 my-auto"
+        className="relative bg-brand-dark border-2 border-brand-teal/30 text-white rounded-3xl p-5 xs:p-6 sm:p-7 max-w-md w-full shadow-2xl overflow-y-auto max-h-[92vh] sm:max-h-[90vh] z-10 scrollbar-thin scrollbar-thumb-brand-teal/20 my-auto"
       >
         {/* Glowing visual accents */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
@@ -324,9 +329,11 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 sm:p-2 text-brand-sand/65 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer z-20"
+          className="absolute top-4 right-4 p-2.5 text-brand-sand/80 hover:text-white bg-white/5 hover:bg-white/15 active:scale-90 border border-white/10 rounded-full transition-all cursor-pointer z-30 shadow-lg flex items-center justify-center w-11 h-11"
+          aria-label="Close authentication modal"
+          id="closeAuthBtn"
         >
-          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+          <X className="w-5 h-5" />
         </button>
 
         {/* Header Title */}
@@ -659,30 +666,6 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
                 {language === "fr" ? "Ou utiliser Google Passport" : "Or use Google Passport"}
               </span>
             </div>
-
-            {isInIframe && (
-              <div className="p-3 bg-brand-teal/5 rounded-xl border border-brand-teal/15 text-[10.5px] text-brand-sand/75 flex items-start gap-2 leading-relaxed mb-1">
-                <AlertCircle className="w-4 h-4 text-brand-teal shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span className="font-bold text-brand-teal block">
-                    {language === "fr" ? "Avis d'authentification de l'Aperçu" : "Preview Sandbox Authentication Notice"}
-                  </span>
-                  <p>
-                    {language === "fr"
-                      ? "La sécurité de votre navigateur restreint la connexion Google dans cet aperçu. Si l'ouverture échoue ou si vous préférez un flux direct, veuillez cliquer ci-dessous pour ouvrir l'application dans un nouvel onglet standard."
-                      : "Your browser's security rules restrict Google sign-in inside this preview iframe. If it fails or you want a direct login, click below to open the application in a new top-level tab."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleOpenInNewTab}
-                    className="inline-flex px-3 py-1 bg-brand-teal hover:bg-brand-teal-light text-brand-dark text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors items-center gap-1 cursor-pointer mt-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    {language === "fr" ? "Ouvrir dans un nouvel onglet" : "Open in New Tab"}
-                  </button>
-                </div>
-              </div>
-            )}
 
             <button
               onClick={handleGoogleSignInClick}

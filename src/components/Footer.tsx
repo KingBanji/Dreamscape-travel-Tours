@@ -200,6 +200,12 @@ export default function Footer({ onOpenAdmin }: FooterProps) {
               >
                 Ready-Made Tours
               </button>
+              <a
+                href="/videos"
+                className="text-left text-brand-sand/75 hover:text-brand-gold transition-colors block py-0.5"
+              >
+                Videos & Promos
+              </a>
             </div>
           </div>
 

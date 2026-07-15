@@ -3,6 +3,7 @@ import { X, Calendar, Ticket, Compass, CheckCircle2, Music, Sparkles } from "luc
 import { useLanguage } from "../lib/LanguageContext";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import Confetti from "./Confetti";
 
 interface MusicTourRegisterModalProps {
   isOpen: boolean;
@@ -112,7 +113,8 @@ export default function MusicTourRegisterModal({ isOpen, onClose }: MusicTourReg
         {/* Modal Body */}
         <div className="p-6 relative z-10">
           {submitSuccess ? (
-            <div className="py-8 text-center space-y-4">
+            <div className="py-8 text-center space-y-4 relative">
+              <Confetti />
               <div className="w-16 h-16 bg-[#1DB954]/20 border border-[#1DB954] rounded-full flex items-center justify-center mx-auto text-[#1DB954] animate-bounce-slow">
                 <CheckCircle2 className="w-8 h-8" />
               </div>

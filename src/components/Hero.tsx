@@ -2,17 +2,20 @@ import { useState, FormEvent } from "react";
 import { Search, MapPin, Calendar, Compass, Users, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../lib/LanguageContext";
+import { useAuthAndData } from "../lib/FirebaseContext";
 
-const heroBg = "/images/hero.jpg";
+const heroBg = "/images/boatcruise hero.png";
 
 interface HeroProps {
   onSearch: (filters: { destinationId: string; activityLevel: string; guestCount: number }) => void;
   destinationKeys: { id: string; name: string }[];
   onBookTour?: () => void;
+  onOpenAuth?: (tab: "signup" | "login") => void;
 }
 
-export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProps) {
+export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth }: HeroProps) {
   const { t, language } = useLanguage();
+  const { user } = useAuthAndData();
   const [selectedDestId, setSelectedDestId] = useState("");
   const [selectedActivity, setSelectedActivity] = useState("");
   const [guests, setGuests] = useState(15);
@@ -21,7 +24,7 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
 
   const heroSlides = [
     {
-      url: "/images/hero.jpg",
+      url: "/images/boatcruise hero.png",
       title: language === "fr" ? "Safari au Coucher du Soleil sur le Zambèze" : "Zambezi Sunset Safari",
       description: language === "fr" 
         ? "Découvrez les rives légendaires du Zambèze, une faune spectaculaire et des levers de soleil africains bruts." 
@@ -70,7 +73,7 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
       id="home"
       className="relative min-h-screen bg-brand-dark flex flex-col justify-center items-center overflow-hidden pt-28 pb-16 px-4"
     >
-      {/* Immersive background decoration with custom matching ambient underlay to fit and display all people beautifully */}
+      {/* Immersive background decoration with custom subtle landscape video background */}
       <div 
         className="absolute inset-0 z-0 bg-black/95 cursor-pointer"
         onClick={() => {
@@ -79,23 +82,22 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
         }}
         title={language === "fr" ? "Cliquez pour ouvrir la galerie interactive" : "Click to view interactive gallery"}
       >
-        {/* Soft blurred ambient underlay of the same image to prevent ugly margins on unexpected ratios */}
-        <img
-          src={heroBg}
-          alt=""
-          aria-hidden="true"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 select-none pointer-events-none"
-        />
-        {/* Primary crisp foreground image fitting 100% of visible details and people */}
-        <img
-          src={heroBg}
-          alt="Zambezi Sunset Safari"
-          referrerPolicy="no-referrer"
-          className="relative w-full h-full object-contain object-center z-10 select-none"
-        />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-35 select-none pointer-events-none"
+        >
+          <source src="/videos/dreamscapezambia hero.mp4" type="video/mp4" />
+          <img
+            src={heroBg}
+            alt="Fallback Hero Image"
+            className="w-full h-full object-cover"
+          />
+        </video>
         {/* Layered high-contrast gradients for luxury readability of text overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-brand-dark z-20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-brand-dark z-20" />
       </div>
 
       {/* Decorative slant bottom banner in vintage warm white style to blend with content section */}
@@ -103,6 +105,30 @@ export default function Hero({ onSearch, destinationKeys, onBookTour }: HeroProp
 
       {/* Hero Central Content */}
       <div className="relative z-10 max-w-5xl mx-auto text-center mt-8 sm:mt-12">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="flex items-center justify-center gap-3 sm:gap-4 mb-8"
+        >
+          <button
+            onClick={() => {
+              if (onOpenAuth) onOpenAuth("signup");
+            }}
+            className="bg-[#f97316] hover:bg-orange-600 text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-lg hover:scale-[1.05] active:scale-95 border-2 border-[#f97316]"
+          >
+            {language === "fr" ? "S'inscrire" : "Sign Up"}
+          </button>
+          <button
+            onClick={() => {
+              if (onOpenAuth) onOpenAuth("login");
+            }}
+            className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-md border-2 border-white/40 hover:scale-[1.05] active:scale-95"
+          >
+            {language === "fr" ? "Se Connecter" : "Log In"}
+          </button>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

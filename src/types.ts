@@ -42,6 +42,7 @@ export interface TourPackage {
   pricePerPerson: number;
   destinationId: string;
   isFeatured?: boolean;
+  videoUrl?: string;
   features: string[];
   itinerary: DailyItinerary[];
   whatToCarry?: string[];

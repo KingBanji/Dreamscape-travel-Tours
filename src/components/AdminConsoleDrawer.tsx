@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Shield, CheckCircle, Clock, AlertTriangle, Trash2, Award, Users, DollarSign, Key, RefreshCw, Search, CalendarRange, Filter, ArrowUpDown, Activity } from "lucide-react";
+import { X, Shield, CheckCircle, Clock, AlertTriangle, Trash2, Award, Users, DollarSign, Key, RefreshCw, Search, CalendarRange, Filter, ArrowUpDown, Activity, Plus, Edit } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, BarChart, Bar, Legend } from "recharts";
 import { Booking } from "../types";
 import { useAuthAndData } from "../lib/FirebaseContext";
@@ -13,7 +13,7 @@ interface AdminConsoleDrawerProps {
 }
 
 export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestoreBookings }: AdminConsoleDrawerProps) {
-  const { user, updateBookingStatus, cancelBooking, signIn, isDbEnabled, memberships } = useAuthAndData();
+  const { user, updateBookingStatus, cancelBooking, signIn, isDbEnabled, memberships, tours, publishTour, deleteTour } = useAuthAndData();
   const { formatAmount } = useCurrency();
   const { language } = useLanguage();
   
@@ -22,7 +22,79 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
   const [dbMode, setDbMode] = useState<"login" | "register">("login");
   
   // Console tabs
-  const [activeConsoleTab, setActiveConsoleTab] = useState<"bookings" | "health">("bookings");
+  const [activeConsoleTab, setActiveConsoleTab] = useState<"bookings" | "health" | "tours">("bookings");
+  
+  // Tour Form State inside Admin Console Drawer
+  const [editingTourId, setEditingTourId] = useState<string | null>(null);
+  const [tourName, setTourName] = useState("");
+  const [tourTagline, setTourTagline] = useState("");
+  const [tourPrice, setTourPrice] = useState(1200);
+  const [tourDuration, setTourDuration] = useState(5);
+  const [tourLocation, setTourLocation] = useState("shantumbu-falls");
+  const [tourDesc, setTourDesc] = useState("");
+  const [tourFeaturesText, setTourFeaturesText] = useState("");
+  const [tourIsFeatured, setTourIsFeatured] = useState(false);
+
+  const resetTourForm = () => {
+    setEditingTourId(null);
+    setTourName("");
+    setTourTagline("");
+    setTourPrice(1200);
+    setTourDuration(5);
+    setTourLocation("shantumbu-falls");
+    setTourDesc("");
+    setTourFeaturesText("");
+    setTourIsFeatured(false);
+  };
+
+  const handlePublishTour = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tourName) return;
+
+    const parsedFeatures = tourFeaturesText
+      .split("\n")
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
+    const targetId = editingTourId || `tour-custom-${Date.now()}`;
+    const newTour = {
+      id: targetId,
+      name: tourName,
+      tagline: tourTagline || "Pristine wilderness redefined",
+      pricePerPerson: Number(tourPrice),
+      durationDays: Number(tourDuration),
+      destinationId: tourLocation,
+      description: tourDesc,
+      features: parsedFeatures.length > 0 ? parsedFeatures : ["Bespoke tailored luxury safari guide"],
+      isFeatured: tourIsFeatured,
+      itinerary: [
+        {
+          day: 1,
+          title: "Expedition Commencement",
+          description: tourDesc || "Arrival and check-in to luxury base camp environment with gourmet meals.",
+          accommodation: "Luxury Base Camp",
+          meals: "Dinner"
+        }
+      ]
+    };
+
+    await publishTour(newTour);
+    resetTourForm();
+    setSuccessMsg(language === "fr" ? "Forfait publié avec succès !" : "Tour package successfully published!");
+    setTimeout(() => setSuccessMsg(""), 4000);
+  };
+
+  const handleStartEditTour = (t: any) => {
+    setEditingTourId(t.id);
+    setTourName(t.name);
+    setTourTagline(t.tagline || "");
+    setTourPrice(t.pricePerPerson || 1200);
+    setTourDuration(t.durationDays || 5);
+    setTourLocation(t.destinationId || "shantumbu-falls");
+    setTourDesc(t.description || "");
+    setTourFeaturesText(t.features ? t.features.join("\n") : "");
+    setTourIsFeatured(!!t.isFeatured);
+  };
   
   // Credentials state
   const [passcode, setPasscode] = useState("");
@@ -212,8 +284,8 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
     return null;
   };
 
-  // Check if current authenticated user has admin email
-  const isAdminEmail = user?.email === "luyandobanjilb@gmail.com";
+  // Check if current authenticated user has admin email or custom administrative role / local keys
+  const isAdminEmail = user?.email === "luyandobanjilb@gmail.com" || user?.isAdmin || user?.role === "admin" || localStorage.getItem("dreamscape_is_admin") === "true";
 
   useEffect(() => {
     if (isAdminEmail) {
@@ -797,11 +869,11 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
             </div>
 
             {/* Navigation Tabs */}
-            <div className="px-6 py-1 bg-brand-dark flex border-b border-white/5 gap-4">
+            <div className="px-6 py-1 bg-brand-dark flex border-b border-white/5 gap-4 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveConsoleTab("bookings")}
-                className={`pb-3 text-xs font-mono tracking-widest uppercase border-b-2 transition-all cursor-pointer ${
+                className={`pb-3 text-xs font-mono tracking-widest uppercase border-b-2 transition-all cursor-pointer shrink-0 ${
                   activeConsoleTab === "bookings"
                     ? "border-brand-gold text-brand-gold font-extrabold"
                     : "border-transparent text-brand-sand/50 hover:text-white"
@@ -813,7 +885,7 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
               <button
                 type="button"
                 onClick={() => setActiveConsoleTab("health")}
-                className={`pb-3 text-xs font-mono tracking-widest uppercase border-b-2 transition-all cursor-pointer ${
+                className={`pb-3 text-xs font-mono tracking-widest uppercase border-b-2 transition-all cursor-pointer shrink-0 ${
                   activeConsoleTab === "health"
                     ? "border-brand-teal text-brand-teal font-extrabold"
                     : "border-transparent text-brand-sand/50 hover:text-white"
@@ -822,9 +894,21 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
               >
                 🛡️ System Health & Analytics
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveConsoleTab("tours")}
+                className={`pb-3 text-xs font-mono tracking-widest uppercase border-b-2 transition-all cursor-pointer shrink-0 ${
+                  activeConsoleTab === "tours"
+                    ? "border-brand-teal text-brand-teal font-extrabold"
+                    : "border-transparent text-brand-sand/50 hover:text-white"
+                }`}
+                aria-label="Open Manage Tours Tab"
+              >
+                🦁 Manage Tours
+              </button>
             </div>
 
-            {activeConsoleTab === "bookings" ? (
+            {activeConsoleTab === "bookings" && (
               <div className="flex flex-col">
                 {/* Daily Booking Trends Visualization */}
                 <div className="mx-6 mt-4 p-5 bg-brand-medium/30 border border-brand-teal/15 rounded-2xl relative overflow-hidden backdrop-blur-md">
@@ -1233,7 +1317,9 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
               )}
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeConsoleTab === "health" && (
           /* System Health Summary Tab (Interactive Recharts Panel) */
           <div className="p-6 space-y-6">
             {/* Health Overview Diagnostics */}
@@ -1448,6 +1534,180 @@ export default function AdminConsoleDrawer({ isOpen, onClose, bookings: firestor
                   {memberships?.filter(m => m.membershipTier === "luangwa_imperial").length || 0}
                 </strong>
                 <span className="text-[8px] font-mono text-brand-sand/50 block mt-0.5">Tier 3 Club Member Ledger</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeConsoleTab === "tours" && (
+          <div className="p-6 space-y-6">
+            <div className="mb-2">
+              <h4 className="font-serif text-sm font-bold text-white tracking-wide uppercase">
+                {language === "fr" ? "Gestion des Circuits de Voyage" : "Bespoke Tours & Packages"}
+              </h4>
+              <p className="text-[9px] font-mono tracking-widest text-brand-teal uppercase mt-0.5">
+                Configure luxury packages published instantly for all clients
+              </p>
+            </div>
+
+            {/* Create/Edit form */}
+            <form onSubmit={handlePublishTour} className="p-5 bg-brand-medium/20 border border-brand-teal/15 rounded-2xl space-y-4">
+              <span className="text-xs font-serif font-black text-white block">
+                {editingTourId ? "Modify Safari Package" : "Publish New Tour Package"}
+              </span>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Package Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none"
+                    placeholder="e.g. Shantumbu Falls Tour"
+                    value={tourName}
+                    onChange={(e) => setTourName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Tagline</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none"
+                    placeholder="Pristine wilderness redefined"
+                    value={tourTagline}
+                    onChange={(e) => setTourTagline(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Price Per Person (USD)</label>
+                    <input
+                      type="number"
+                      required
+                      className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none font-mono"
+                      value={tourPrice}
+                      onChange={(e) => setTourPrice(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Duration (Days)</label>
+                    <input
+                      type="number"
+                      required
+                      className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none font-mono"
+                      value={tourDuration}
+                      onChange={(e) => setTourDuration(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Destination Target</label>
+                  <select
+                    className="w-full px-3 py-2 bg-brand-dark/80 text-brand-sand border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none cursor-pointer"
+                    value={tourLocation}
+                    onChange={(e) => setTourLocation(e.target.value)}
+                  >
+                    <option value="shantumbu-falls">Shantumbu Falls &amp; Lusaka Escarpment</option>
+                    <option value="kafue-national-park">Kafue National Park (Wilderness &amp; Camps)</option>
+                    <option value="livingstone-falls">Victoria Falls &amp; Livingstone Expedition</option>
+                    <option value="south-luangwa">South Luangwa National Park Wildlife</option>
+                    <option value="lower-zambezi">Lower Zambezi National River Cruise</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Included Features (one per line)</label>
+                  <textarea
+                    rows={2}
+                    className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none font-sans"
+                    placeholder="Luxury high-clearance 4x4 transfers&#10;Zambian gourmet snack basket included"
+                    value={tourFeaturesText}
+                    onChange={(e) => setTourFeaturesText(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-brand-teal block mb-1">Full Itinerary Description</label>
+                  <textarea
+                    rows={2}
+                    className="w-full px-3 py-2 bg-brand-dark/80 text-white border border-white/10 rounded-xl text-xs focus:border-brand-teal/50 outline-none font-sans"
+                    placeholder="Brief overview of the experience"
+                    value={tourDesc}
+                    onChange={(e) => setTourDesc(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="drawer-tour-featured"
+                    className="rounded border-white/10 text-brand-teal focus:ring-0 bg-brand-dark/80"
+                    checked={tourIsFeatured}
+                    onChange={(e) => setTourIsFeatured(e.target.checked)}
+                  />
+                  <label htmlFor="drawer-tour-featured" className="text-xs text-brand-sand/80 cursor-pointer selection:bg-transparent">
+                    Mark Tour as Featured
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-brand-gold hover:bg-yellow-600 text-brand-dark text-xs font-mono uppercase tracking-wider font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{editingTourId ? "Commit Edits" : "Publish Tour Package"}</span>
+                </button>
+                {editingTourId && (
+                  <button
+                    type="button"
+                    onClick={resetTourForm}
+                    className="px-3 py-2 bg-brand-dark hover:bg-brand-teal/15 text-brand-sand hover:text-white text-xs font-mono uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Tours Inventory List inside Drawer */}
+            <div className="space-y-3">
+              <h5 className="text-[10px] font-mono uppercase tracking-widest text-brand-teal font-bold">Active Catalog ({tours?.length || 0})</h5>
+              <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-brand-teal/20 pr-1">
+                {(tours || []).map((t) => (
+                  <div key={t.id} className="p-3 bg-brand-medium/40 border border-white/5 rounded-xl flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-serif text-xs font-bold text-white block truncate">{t.name}</span>
+                      <span className="text-[10px] text-brand-sand/60 block mt-0.5">{t.durationDays} Days • <span className="text-brand-gold font-bold">{formatAmount(t.pricePerPerson)}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditTour(t)}
+                        className="p-1.5 bg-brand-dark hover:bg-brand-teal/10 border border-brand-teal/20 text-brand-teal rounded-lg transition-all cursor-pointer"
+                        title="Edit Tour Package"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm("Permanently delete this tour package from active packages?")) {
+                            deleteTour(t.id);
+                          }
+                        }}
+                        className="p-1.5 bg-red-950/40 hover:bg-red-900/40 border border-red-900/30 text-red-400 rounded-lg transition-all cursor-pointer"
+                        title="Delete Tour Package"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -93,7 +93,7 @@ async function startServer() {
   // Main AI chat proxy endpoint
   app.post("/api/ai", async (req, res) => {
     try {
-      const { message } = req.body;
+      const { message, agentName } = req.body;
       if (!message || typeof message !== "string") {
         res.status(400).json({ reply: "Please provide a valid question or input text." });
         return;
@@ -102,14 +102,18 @@ async function startServer() {
       const openaiKey = process.env.OPENAI_API_KEY;
       const geminiKey = process.env.GEMINI_API_KEY;
 
+      const activeAgent = agentName || "Banji Luyando";
+
       if (!openaiKey && !geminiKey) {
         res.json({
-          reply: "Welcome to Dreamscape Tours ZM AI Travel Assistant! 🐆 (API Keys are currently unconfigured. You can supply your live GEMINI_API_KEY or OPENAI_API_KEY inside the Settings > Secrets panel to unlock real-time intelligence)."
+          reply: `Welcome to Dreamscape Tours ZM AI Travel Assistant! 🐆 (API Keys are currently unconfigured. You can supply your live GEMINI_API_KEY or OPENAI_API_KEY inside the Settings > Secrets panel to unlock real-time intelligence. Currently chatting with ${activeAgent}).`
         });
         return;
       }
 
       const systemInstruction = `You are the premium, highly professional, and enthusiastic AI Safari Advisor representing "Dreamscape Tours ZM", Zambia's finest boutique luxury safari and travel tour operator.
+
+Currently, you are chatting on behalf of "${activeAgent}", who is the client's dedicated personal travel agent today. Adopt their persona or state you represent them.
 
 Your goal is to answer client queries about our custom African tours, travel logistics, and Zambian wilderness destinations with extreme warmth, elegance, and accuracy. Ensure you suggest trips with prices ONLY in ZMW / ZK (Zambian Kwacha). Do not quote in USD unless specifically requested.
 
@@ -137,14 +141,14 @@ We arrange premium, fully guided VIP transfers, permits, royal tribal court perm
 - "Umutomboko Conquest Triumph" (Luapula Province, late July): See Mwata Kazembe perform the dramatic sword-slashing Mutomboko conquest dance dressed in heavy layered royal skirts.
 - "Shimunenga Cow Pageant & Parade" (Southern Province, Sept/Oct): Experience the Ila people's cattle river-crossings across the wild Kafue Flats with beautiful cultural chants.
 - "Likumbi Lya Mize & Makishi Masquerade" (Northwestern Province, August): Unlock the ancient world of the Makishi spirits, featuring beautiful woodcarvings, fire-circles, and initiates' masks.
-*Note: Due to variable lunar calendars, royal decrees, and complex flight/transport arrangements, these packages have Bespoke Pricing. Interested guests details can be submitted under "Special Packages" in this applet, or they can chat directly with our expert Banji Luyando.*
+*Note: Due to variable lunar calendars, royal decrees, and complex flight/transport arrangements, these packages have Bespoke Pricing. Interested guests details can be submitted under "Special Packages" in this applet, or they can chat directly with our expert ${activeAgent}.*
 
 4. LOGISTICS AND PAYMENTS:
 - Support standard secure cards and popular automated Local Mobile Money transfers (Airtel Money, MTN MoMo, Zamtel) with immediate booking validation.
 - Free date rescheduling up to 30 days prior. Fully refundable if canceled 45 days or more prior.
 - Assist with visa-free entries (free for USA, UK, EU, Canada, GCC, etc.) and health protocols (Yellow Fever certificate might be needed, malaria prophylaxis recommended).
 
-TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make up any packages or pricing that are not listed above. Mention that bookings can be made directly in this applet by opening "Book Now" or clicking the WhatsApp shortcut for direct agent support with Banji Luyando. Limit output size to keep responses compact and highly engaging.`;
+TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make up any packages or pricing that are not listed above. Mention that bookings can be made directly in this applet by opening "Book Now" or clicking the WhatsApp shortcut for direct agent support with ${activeAgent}. Limit output size to keep responses compact and highly engaging.`;
 
       // 1. If OpenAI key is present, prioritize gpt-4o-mini
       if (openaiKey) {
@@ -190,17 +194,34 @@ TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make
 
       // 2. Fallback to Gemini if Gemini Key is present (or as primary path if OpenAI is missing)
       if (geminiKey) {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: message,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          },
-        });
+        const geminiModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"];
+        let lastError = null;
 
-        const reply = response.text || "I was unable to formulate a response at this moment. Let's try again shortly!";
-        res.json({ reply });
+        for (const modelName of geminiModels) {
+          try {
+            console.log(`Attempting Gemini generation using model: ${modelName}`);
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: message,
+              config: {
+                systemInstruction,
+                temperature: 0.7,
+              },
+            });
+
+            const reply = response.text || "I was unable to formulate a response at this moment. Let's try again shortly!";
+            res.json({ reply });
+            return;
+          } catch (geminiError: any) {
+            console.error(`Gemini API error with model ${modelName}:`, geminiError);
+            lastError = geminiError;
+          }
+        }
+
+        // If we reach here, all Gemini models failed
+        res.status(500).json({
+          reply: `The safari radio is currently staticky due to heavy network demand! (Error: ${lastError?.message || "Unavailable"}). Please retry in a few seconds or contact ${activeAgent} directly.`
+        });
         return;
       }
 

@@ -5,6 +5,7 @@ import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
 import { TOUR_PACKAGES } from "../data/travelData";
 import { KWACHA_RATE } from "../lib/currency";
+import Confetti from "./Confetti";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -567,15 +568,15 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
 
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">MTN MoMo Transfer</span>
-                  <span className="font-mono text-[#128C7E] font-bold">+260 975 222 136</span>
+                  <span className="font-mono text-[#128C7E] font-bold">+260 973 331 843</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">Airtel Money Pay</span>
-                  <span className="font-mono text-[#128C7E] font-bold">+260 975 222 136</span>
+                  <span className="font-mono text-[#128C7E] font-bold">+260 973 331 843</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-white border border-[#25D366]/20 rounded-xl">
                   <span className="font-bold text-brand-dark">Zanaco Transfer</span>
-                  <span className="font-mono text-[#128C7E] font-bold">A/C: 100260975222136</span>
+                  <span className="font-mono text-[#128C7E] font-bold">A/C: 100260973331843</span>
                 </div>
                 <div className="p-2.5 bg-white border border-brand-teal/20 rounded-xl text-brand-dark space-y-1">
                   <span className="font-bold text-[10px] block uppercase text-emerald-700 tracking-wider">Your Contact Dispatch Data</span>
@@ -609,7 +610,8 @@ I would like to pay via WhatsApp Mobile Money (Airtel / MTN MoMo). Please guide 
              </form>
            ) : (
              // Success State Details
-             <div className="text-center py-6 flex flex-col items-center justify-center flex-grow">
+             <div className="text-center py-6 flex flex-col items-center justify-center flex-grow relative">
+               <Confetti />
                <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
                  <CheckCircle className="w-8 h-8" />
                </div>

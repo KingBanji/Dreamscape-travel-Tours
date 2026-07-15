@@ -5,7 +5,6 @@ import { useAuthAndData } from "../lib/FirebaseContext";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
 import DreamscapeLogo from "./DreamscapeLogo";
-import AuthModal from "./AuthModal";
 import MfaSettingsModal from "./MfaSettingsModal";
 
 interface HeaderProps {
@@ -16,16 +15,26 @@ interface HeaderProps {
   bookingCount: number;
   theme: "sand" | "dark";
   onChangeTheme: (theme: "sand" | "dark") => void;
+  onOpenAuth?: (tab: "signup" | "login") => void;
+  isAuthModalOpen?: boolean;
 }
 
-export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremonies, onOpenPackages, bookingCount, theme, onChangeTheme }: HeaderProps) {
+export default function Header({ 
+  onOpenAttractions, 
+  onOpenMyTrips, 
+  onOpenCeremonies, 
+  onOpenPackages, 
+  bookingCount, 
+  theme, 
+  onChangeTheme,
+  onOpenAuth,
+  isAuthModalOpen
+}: HeaderProps) {
   const { user, signIn, signOut, isDbEnabled } = useAuthAndData();
   const { currency, setCurrency, exchangeRate } = useCurrency();
   const { language, setLanguage, t } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<"signup" | "login">("signup");
   const [mfaModalOpen, setMfaModalOpen] = useState(false);
 
   useEffect(() => {
@@ -35,6 +44,8 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  if (isAuthModalOpen) return null;
 
   const handleNavClick = (id: string) => {
     setMobileMenuOpen(false);
@@ -85,81 +96,88 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
           {/* Logo Brand */}
           <div 
             onClick={() => handleNavClick("home")} 
-            className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group flex-shrink-0 w-full sm:w-auto justify-center sm:justify-start"
+            className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group flex-shrink-0 justify-start"
           >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white overflow-hidden flex items-center justify-center transition-transform duration-500 group-hover:scale-105 border border-brand-teal/20 p-0.5 shadow-sm flex-shrink-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-white overflow-hidden flex items-center justify-center transition-transform duration-500 group-hover:scale-105 border border-brand-teal/20 p-0.5 shadow-sm flex-shrink-0">
               <DreamscapeLogo className="w-full h-full object-contain" />
             </div>
             <div className="flex-shrink-0">
-              <span className="font-serif text-sm sm:text-lg md:text-xl font-bold tracking-tight text-white block whitespace-nowrap">
+              <span className="font-serif text-xs xs:text-sm sm:text-lg md:text-xl font-bold tracking-tight text-white block whitespace-nowrap">
                 DREAMSCAPE TOURS
               </span>
-              <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.15em] sm:tracking-[0.25em] text-brand-teal uppercase block -mt-0.5 font-bold whitespace-nowrap">
+              <span className="text-[7px] xs:text-[8px] sm:text-[9px] font-mono tracking-[0.1em] xs:tracking-[0.15em] sm:tracking-[0.25em] text-brand-teal uppercase block -mt-0.5 font-bold whitespace-nowrap">
                 {t("zambiaTravels")}
               </span>
             </div>
           </div>
 
           {/* Large Screens Links */}
-          <nav className="hidden lg:flex items-center gap-3 xl:gap-5 border-r border-brand-teal/20 pr-4 flex-shrink-0">
+          <nav className="hidden lg:flex items-center gap-2 xl:gap-5 border-r border-brand-teal/20 pr-4 flex-shrink-0">
             <button
               onClick={() => handleNavClick("home")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Home section"
             >
               {t("home")}
             </button>
             <button
               onClick={() => handleNavClick("destinations")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Destinations section"
             >
               {t("destinations")}
             </button>
             <button
               onClick={() => handleNavClick("planner")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Custom Trip Planner section"
             >
               {t("customTrip")}
             </button>
             <button
               onClick={onOpenPackages}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Open Signature Packages and Tours catalog"
             >
               {t("tours")}
             </button>
             <button
               onClick={() => handleNavClick("faq")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Frequently Asked Questions section"
             >
               {t("faq")}
             </button>
             <button
               onClick={() => handleNavClick("team")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Team section"
             >
               {t("team")}
             </button>
             <button
               onClick={() => handleNavClick("contact")}
-              className="font-medium text-xs font-mono uppercase tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
               aria-label="Navigate to Contact Information section"
             >
               {t("contact")}
             </button>
+            <a
+              href="/videos"
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
+              aria-label="View promotional videos"
+            >
+              Videos
+            </a>
           </nav>
 
           {/* Right Action buttons */}
-          <div className="flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 flex-shrink-0">
             {/* Currency switcher - hidden on small mobile screens to prevent header wrapping */}
             <div className="hidden sm:flex items-center bg-brand-medium/60 rounded-full p-0.5 border border-brand-teal/30 shadow-inner flex-shrink-0">
               <button
@@ -285,30 +303,7 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              ) : (
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setAuthModalTab("signup");
-                      setAuthModalOpen(true);
-                    }}
-                    className="bg-[#f97316] hover:bg-orange-600 text-white font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-md select-none border border-[#f97316] hover:scale-[1.03] whitespace-nowrap flex-shrink-0"
-                    aria-label="Open sign up form to create a new explorer profile"
-                  >
-                    Sign Up
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthModalTab("login");
-                      setAuthModalOpen(true);
-                    }}
-                    className="bg-white hover:bg-gray-100 text-black font-bold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm border border-white select-none hover:scale-[1.03] whitespace-nowrap flex-shrink-0"
-                    aria-label="Open login form to access your account"
-                  >
-                    Log In
-                  </button>
-                </div>
-              )}
+              ) : null}
             </div>
 
             {/* Mobile menu Button */}
@@ -397,14 +392,21 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
           >
             {t("contact")}
           </button>
+          <a
+            href="/videos"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-brand-sand hover:bg-brand-medium hover:text-brand-gold transition-colors"
+            aria-label="View promotional videos on mobile"
+          >
+            Videos & Promos
+          </a>
 
           {!user && (
             <div className="grid grid-cols-2 gap-2 pt-4 border-t border-white/5 mt-4">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  setAuthModalTab("signup");
-                  setAuthModalOpen(true);
+                  if (onOpenAuth) onOpenAuth("signup");
                 }}
                 className="bg-[#f97316] hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-center text-xs uppercase tracking-wider transition-all cursor-pointer block w-full select-none"
                 aria-label="Open sign up form on mobile"
@@ -414,8 +416,7 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  setAuthModalTab("login");
-                  setAuthModalOpen(true);
+                  if (onOpenAuth) onOpenAuth("login");
                 }}
                 className="bg-white hover:bg-gray-100 text-black font-bold py-2.5 rounded-xl text-center text-xs uppercase tracking-wider transition-all cursor-pointer block w-full select-none"
                 aria-label="Open login form on mobile"
@@ -491,7 +492,6 @@ export default function Header({ onOpenAttractions, onOpenMyTrips, onOpenCeremon
 
         </div>
       )}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} initialTab={authModalTab} />
       <MfaSettingsModal isOpen={mfaModalOpen} onClose={() => setMfaModalOpen(false)} />
     </header>
   );

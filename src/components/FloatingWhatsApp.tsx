@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User, ChevronRight, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useScrollSync } from "../hooks/useScrollSync";
+import { useLanguage } from "../lib/LanguageContext";
 // @ts-ignore
 import directorImg from "../assets/images/luyando_banji_1779907072829.png";
 
@@ -16,11 +17,46 @@ interface FloatingWhatsAppProps {
 
 export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppProps) {
   const { user } = useAuthAndData();
+  const { language } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(1);
   const [messageText, setMessageText] = useState("");
   const [showTyping, setShowTyping] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [localHistory, setLocalHistory] = useState<any[]>([]);
+
+  // The 3 official agents with respective names, roles, custom images, and verified phone lines
+  const agents = [
+    {
+      id: "banji",
+      name: "Banji Luyando",
+      roleEn: "Founder & Lead Director",
+      roleFr: "Fondateur & Directeur Principal",
+      phone: "+260 975 222 136",
+      cleanPhone: "260975222136",
+      image: directorImg,
+    },
+    {
+      id: "kalila",
+      name: "Kalila Chella",
+      roleEn: "Lead Travel Consultant",
+      roleFr: "Consultante en Voyage Principale",
+      phone: "+260 571 139 345",
+      cleanPhone: "260571139345",
+      image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&h=500&q=80",
+    },
+    {
+      id: "mizinga",
+      name: "Mizinga Cheelo",
+      roleEn: "Tour Operations Manager",
+      roleFr: "Directrice des Opérations de Voyage",
+      phone: "+260 973 331 843",
+      cleanPhone: "260973331843",
+      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&h=500&q=80",
+    }
+  ];
+
+  // Store the active agent in state (Defaults to Banji Luyando)
+  const [activeAgent, setActiveAgent] = useState(agents[0]);
 
   // Unique session ID for guest/anonymous chat sessions
   const [chatSessionId] = useState<string>(() => {
@@ -104,7 +140,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText }),
+        body: JSON.stringify({ message: userText, agentName: activeAgent.name }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -123,17 +159,17 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
     setShowTyping(false);
 
     if (!replyText) {
-      replyText = "Thanks for reaching out! 🐆 I am on standby and have received your inquiry. Tap the green dispatch button to link directly to my active WhatsApp line (+260 975 222 136) so we can wrap up your details immediately!";
+      replyText = `Thanks for reaching out! 🐆 I am on standby and have received your inquiry. Tap the green dispatch button to link directly to my active WhatsApp line (${activeAgent.phone}) so we can wrap up your details immediately!`;
       
       const lowerText = userText.toLowerCase();
       if (lowerText.includes("custom safari") || lowerText.includes("safari planning")) {
-        replyText = "Excellent! 🦁 I am our principal safari coordinator here in Lusaka. For custom safaris, we normally recommend starting with a 3-day South Luangwa Wildlife Package or a lower Zambezi boat cruise. Check your WhatsApp tab where I've opened a direct session for us, or type your preferred dates and guest count right here!";
+        replyText = `Excellent! 🦁 I am ${activeAgent.name}, your safari coordinator. For custom safaris, we normally recommend starting with a 3-day South Luangwa Wildlife Package or a lower Zambezi boat cruise. Check your WhatsApp tab where I've opened a direct session for us, or type your preferred dates and guest count right here!`;
       } else if (lowerText.includes("pricing") || lowerText.includes("price") || lowerText.includes("rates")) {
-        replyText = "Certainly! 💵 Our standard pricing ranges from $150 to $450 per person depending on group size and length of the safari. I have launched a direct secure session in your WhatsApp tab to finalize the group rates. Let me know which parks you are most excited about!";
+        replyText = `Certainly! 💵 Our standard pricing ranges from ZK 650 to ZK 43,000 depending on group size and length of the safari. I have launched a direct secure session in your WhatsApp tab to finalize the group rates with me (${activeAgent.name}). Let me know which parks you are most excited about!`;
       } else if (lowerText.includes("confirm") || lowerText.includes("mobile money") || lowerText.includes("momo")) {
-        replyText = "Airtel / MTN Mobile Money payments are processed instantly! 💳 I am reviewing the dispatch logs right now. Once you confirm on the WhatsApp tab, please upload your MoMo transaction ID or screenshot here so we can mark your booking as 'Confirmed' in real-time.";
+        replyText = `Airtel / MTN Mobile Money payments are processed instantly! 💳 I am reviewing the dispatch logs right now. Once you confirm on the WhatsApp tab, please upload your MoMo transaction ID or screenshot here so we can mark your booking as 'Confirmed' in real-time.`;
       } else if (lowerText.includes("victoria falls") || lowerText.includes("vic falls") || lowerText.includes("livingstone")) {
-        replyText = "Wonderful choice! Victoria Falls is breathtaking this season. 🌊 I can confirm availability for our Livingstone Day Tour right now. Please tell me your preferred start date and we'll secure your park entry tickets immediately!";
+        replyText = `Wonderful choice! Victoria Falls is breathtaking this season. 🌊 I can confirm availability for our Livingstone Day Tour right now. Please tell me your preferred start date and we'll secure your park entry tickets immediately!`;
       }
     }
 
@@ -142,7 +178,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       sender: "agent",
       text: replyText,
       timestamp: new Date().toISOString(),
-      agentName: "Banji Luyando"
+      agentName: activeAgent.name
     };
 
     try {
@@ -176,8 +212,8 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       setLocalHistory(prev => [...prev, { id: Math.random().toString(), ...userMsg }]);
     }
 
-    const formattedText = `Hello Online Agent Assistant Banji Luyando! \n\nI am contacting you from the Dreamscape Tours Zambia platform regarding your tour services. \n\nInquiry details: ${promptText}`;
-    const url = `https://wa.me/260975222136?text=${encodeURIComponent(formattedText)}`;
+    const formattedText = `Hello Online Agent Assistant ${activeAgent.name}! \n\nI am contacting you from the Dreamscape Tours Zambia platform regarding your tour services. \n\nInquiry details: ${promptText}`;
+    const url = `https://wa.me/${activeAgent.cleanPhone}?text=${encodeURIComponent(formattedText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
 
     triggerAgentReply(promptText);
@@ -208,8 +244,8 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       setLocalHistory(prev => [...prev, { id: Math.random().toString(), ...userMsg }]);
     }
 
-    const formattedText = `Hello Online Agent Assistant Banji Luyando! \n\nInquiry from Dreamscape Tours Zambia applet: \n\n"${textToSend}"`;
-    const url = `https://wa.me/260975222136?text=${encodeURIComponent(formattedText)}`;
+    const formattedText = `Hello Online Agent Assistant ${activeAgent.name}! \n\nInquiry from Dreamscape Tours Zambia applet: \n\n"${textToSend}"`;
+    const url = `https://wa.me/${activeAgent.cleanPhone}?text=${encodeURIComponent(formattedText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
 
     triggerAgentReply(textToSend);
@@ -253,8 +289,8 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
             <div className="relative">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-medium border-[2px] border-emerald-400/50 shadow-inner shrink-0">
                 <img 
-                  src={directorImg} 
-                  alt="Online Agent Assistant Banji Luyando" 
+                  src={activeAgent.image} 
+                  alt={activeAgent.name} 
                   className="w-full h-full object-cover scale-105"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
@@ -266,10 +302,10 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-black tracking-wide text-white uppercase font-sans">
-                Banji Luyando
+                {activeAgent.name}
               </h4>
               <span className="text-[9px] text-emerald-300 font-medium flex items-center gap-1 font-mono uppercase">
-                ● Online Agent Assistant
+                ● {language === "fr" ? activeAgent.roleFr : activeAgent.roleEn}
               </span>
             </div>
           </div>
@@ -282,6 +318,40 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
           </button>
         </div>
 
+        {/* Dynamic Agent Selection Ribbon */}
+        <div className="bg-emerald-950/20 dark:bg-black/40 px-3.5 py-2.5 border-b border-brand-sand-dark/15 dark:border-emerald-950/40 flex items-center justify-between gap-2 shrink-0">
+          <span className="text-[10px] font-black text-brand-dark/50 dark:text-emerald-400 uppercase tracking-widest shrink-0">
+            {language === "fr" ? "Agent Actif:" : "Select Agent:"}
+          </span>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            {agents.map((agent) => {
+              const isSelected = activeAgent.id === agent.id;
+              return (
+                <button
+                  key={agent.id}
+                  onClick={() => setActiveAgent(agent)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer shrink-0 ${
+                    isSelected
+                      ? "bg-[#25D366] hover:bg-[#1ebd59] text-white border-transparent shadow-sm scale-105"
+                      : "bg-white/85 dark:bg-slate-900/80 hover:bg-emerald-500/5 text-brand-dark/80 dark:text-slate-300 border-brand-sand-dark/30 dark:border-slate-800"
+                  }`}
+                >
+                  <img
+                    src={agent.image}
+                    alt={agent.name}
+                    className="w-4.5 h-4.5 rounded-full object-cover border border-white/20"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=150&q=80";
+                    }}
+                  />
+                  <span>{agent.name.split(" ")[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Chat Body Bubble section */}
         <div 
           ref={chatBodyRef}
@@ -291,7 +361,9 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
           <div className="self-start max-w-[85%] bg-white/95 dark:bg-[#14231b] text-brand-dark dark:text-slate-100 rounded-r-2xl rounded-bl-2xl p-3 shadow-xs text-xs leading-relaxed relative border border-emerald-500/10 shrink-0">
             <p className="font-semibold text-[10px] text-[#25D366] mb-0.5 uppercase tracking-wide">Dreamscape Assistant</p>
             <p className="text-brand-dark/85 dark:text-slate-300">
-              Greetings from beautiful Zambia! 🇿🇲 Let me help you craft the perfect wildlife safari trip or process custom Mobile Money payments directly.
+              {language === "fr"
+                ? `Bonjour! Je suis ${activeAgent.name}. Comment puis-je vous aider à planifier votre safari de rêve ou à finaliser vos paiements Mobile Money aujourd'hui?`
+                : `Greetings! I am ${activeAgent.name}. Let me help you craft the perfect wildlife safari trip or process custom Mobile Money payments directly.`}
             </p>
             <span className="text-[8px] text-brand-dark/40 dark:text-slate-400 block text-right mt-1 font-mono">08:00 AM</span>
           </div>
@@ -317,7 +389,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
                 <p className={`font-semibold text-[10px] uppercase tracking-wide mb-0.5 ${
                   isUser ? "text-emerald-100" : "text-[#25D366]"
                 }`}>
-                  {isUser ? "You" : (msg.agentName || "Banji Luyando")}
+                  {isUser ? "You" : (msg.agentName || activeAgent.name)}
                 </p>
                 <p className={isUser ? "text-white" : "text-brand-dark/85 dark:text-slate-200"}>
                   {msg.text}
@@ -381,3 +453,4 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
     </div>
   );
 }
+

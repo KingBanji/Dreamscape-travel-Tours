@@ -24,8 +24,8 @@ import {
   handleFirestoreError,
   OperationType
 } from "./firebase";
-import { Booking, Review, Membership } from "../types";
-import { MOCK_REVIEWS } from "../data/travelData";
+import { Booking, Review, Membership, TourPackage } from "../types";
+import { MOCK_REVIEWS, TOUR_PACKAGES } from "../data/travelData";
 
 interface FirebaseContextType {
   user: any;
@@ -34,6 +34,7 @@ interface FirebaseContextType {
   bookings: Booking[];
   reviews: Review[];
   memberships: Membership[];
+  tours: TourPackage[];
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   setCredentialsUser: (user: any) => void;
@@ -45,6 +46,8 @@ interface FirebaseContextType {
   applyMembership: (membership: Omit<Membership, "id" | "status" | "userId" | "createdAt" | "updatedAt">) => Promise<void>;
   cancelMembership: (membershipId: string) => Promise<void>;
   updateLocalUserFields: (fields: any) => void;
+  publishTour: (pkg: TourPackage) => Promise<void>;
+  deleteTour: (tourId: string) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -80,11 +83,27 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [tours, setTours] = useState<TourPackage[]>(() => {
+    try {
+      const saved = localStorage.getItem("dreamscape_managed_tours");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((p: any) => {
+          const matchingBase = TOUR_PACKAGES.find((bp) => bp.id === p.id);
+          return matchingBase ? { ...p, videoUrl: matchingBase.videoUrl || p.videoUrl } : p;
+        });
+      }
+    } catch {
+      // fallback
+    }
+    return TOUR_PACKAGES;
+  });
 
   // Local storage keys for fallbacks
   const BOOKINGS_LOCAL_KEY = "dreamscape_bookings_v2";
   const REVIEWS_LOCAL_KEY = "dreamscape_reviews_v2";
   const MEMBERSHIPS_LOCAL_KEY = "dreamscape_memberships_v2";
+  const TOURS_LOCAL_KEY = "dreamscape_managed_tours";
 
   // 1. Initial Local fallbacks loading
   useEffect(() => {
@@ -115,6 +134,22 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (e) {
       console.error("Local storage memberships read error", e);
+    }
+
+    try {
+      const savedTours = localStorage.getItem(TOURS_LOCAL_KEY);
+      if (savedTours) {
+        const parsed = JSON.parse(savedTours);
+        const merged = parsed.map((p: any) => {
+          const matchingBase = TOUR_PACKAGES.find((bp) => bp.id === p.id);
+          return matchingBase ? { ...p, videoUrl: matchingBase.videoUrl || p.videoUrl } : p;
+        });
+        setTours(merged);
+      } else {
+        setTours(TOUR_PACKAGES);
+      }
+    } catch (e) {
+      setTours(TOUR_PACKAGES);
     }
   }, []);
 
@@ -211,7 +246,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
         }
 
-        const isAdminEmail = resolvedUser.email === "luyandobanjilb@gmail.com";
+        const isAdminEmail = resolvedUser.email === "luyandobanjilb@gmail.com" || (resolvedUser as any).isAdmin || (resolvedUser as any).role === "admin" || localStorage.getItem("dreamscape_is_admin") === "true";
 
         // If the user registered via Custom Email/Password (Express JWT)
         if ((resolvedUser as any).isCredentialsUser) {
@@ -479,6 +514,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setBookings(nextBookings);
       localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(nextBookings));
     }
+
+    // Dispatch custom event to trigger Google Chat/Workspace notification hooks
+    window.dispatchEvent(new CustomEvent("dreamscape_new_booking", { detail: newBooking }));
   };
 
   // Cancel / Delete booking
@@ -655,6 +693,90 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Real-time public tours collection sync from Firestore
+  useEffect(() => {
+    if (!isFirebaseEnabled || !db) return;
+
+    const toursPath = "tours";
+    const toursQuery = collection(db, toursPath);
+
+    const unsubscribeTours = onSnapshot(
+      toursQuery,
+      (snapshot) => {
+        const list: TourPackage[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as TourPackage);
+        });
+        
+        // Merge Firestore custom tours with our static baseline TOUR_PACKAGES
+        const merged = [...TOUR_PACKAGES];
+        list.forEach((fTour) => {
+          const index = merged.findIndex((t) => t.id === fTour.id);
+          if (index > -1) {
+            merged[index] = { ...merged[index], ...fTour };
+          } else {
+            merged.unshift(fTour);
+          }
+        });
+
+        setTours(merged);
+        localStorage.setItem(TOURS_LOCAL_KEY, JSON.stringify(merged));
+      },
+      (error) => {
+        console.warn("Firestore public tours subscription error:", error);
+      }
+    );
+
+    return () => {
+      unsubscribeTours();
+    };
+  }, [db, isFirebaseEnabled]);
+
+  // Publish custom tour package
+  const publishTour = async (tourInput: TourPackage) => {
+    // Give admin rights when a package is published
+    localStorage.setItem("dreamscape_is_admin", "true");
+    updateLocalUserFields({ isAdmin: true, role: "admin" });
+
+    if (isFirebaseEnabled && db) {
+      const docPath = `tours/${tourInput.id}`;
+      try {
+        await setDoc(doc(db, "tours", tourInput.id), pruneUndefined(tourInput));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, docPath);
+      }
+    } else {
+      // Offline fallback
+      const index = tours.findIndex((t) => t.id === tourInput.id);
+      let updated: TourPackage[];
+      if (index > -1) {
+        updated = [...tours];
+        updated[index] = tourInput;
+      } else {
+        updated = [tourInput, ...tours];
+      }
+      setTours(updated);
+      localStorage.setItem(TOURS_LOCAL_KEY, JSON.stringify(updated));
+    }
+  };
+
+  // Delete custom tour package
+  const deleteTour = async (tourId: string) => {
+    if (isFirebaseEnabled && db) {
+      const docPath = `tours/${tourId}`;
+      try {
+        await deleteDoc(doc(db, "tours", tourId));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, docPath);
+      }
+    } else {
+      // Offline fallback
+      const remaining = tours.filter((t) => t.id !== tourId);
+      setTours(remaining);
+      localStorage.setItem(TOURS_LOCAL_KEY, JSON.stringify(remaining));
+    }
+  };
+
   return (
     <FirebaseContext.Provider value={{
       user,
@@ -663,6 +785,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       bookings,
       reviews,
       memberships,
+      tours,
       signIn,
       signOut: signOutClick,
       setCredentialsUser,
@@ -673,7 +796,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       addReview,
       deleteReview,
       applyMembership,
-      cancelMembership
+      cancelMembership,
+      publishTour,
+      deleteTour
     }}>
       {children}
     </FirebaseContext.Provider>

@@ -215,5 +215,11 @@ service cloud.firestore {
         && (request.resource.data.recipientCount is int || request.resource.data.recipientCount is number);
       allow update, delete: if isAdmin();
     }
+
+    // --- Custom Tour Packages Rules ---
+    match /tours/{tourId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

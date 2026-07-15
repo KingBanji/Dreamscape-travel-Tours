@@ -20,7 +20,9 @@ interface GoogleWorkspaceContextType {
   signOutWorkspace: () => Promise<void>;
   createWorkspaceIntegration: () => Promise<void>;
   submitContactInquiry: (name: string, email: string, phone: string, message: string) => Promise<void>;
-  sendEmailViaGmail: (to: string, subject: string, messageBody: string) => Promise<any>;
+  sendEmailViaGmail: (to: string, subject: string, messageBody: string, tokenOverride?: string) => Promise<any>;
+  listChatSpaces: (tokenOverride?: string) => Promise<any[]>;
+  sendChatMessage: (spaceName: string, text: string, tokenOverride?: string) => Promise<any>;
 }
 
 const GoogleWorkspaceContext = createContext<GoogleWorkspaceContextType | undefined>(undefined);
@@ -63,6 +65,28 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
     return unsubscribe;
   }, []);
 
+  // Sync and listen to local custom events for new bookings to post to Google Chat
+  useEffect(() => {
+    const handleNewBooking = async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const booking = customEvent.detail;
+      const savedSpaceName = localStorage.getItem("dreamscape_selected_chat_space");
+      if (accessToken && savedSpaceName && booking) {
+        try {
+          const chatMessage = `🦁 *New Booking Confirmed!* 🦁\n*Tour:* ${booking.tourName || "Safari Package"}\n*Client:* ${booking.customerName}\n*Email:* ${booking.customerEmail}\n*Phone:* ${booking.customerPhone || "N/A"}\n*Guests:* ${booking.guestsCount || 1}\n*Date:* ${booking.preferredStartDate || "Not specified"}`;
+          await sendChatMessage(savedSpaceName, chatMessage);
+        } catch (chatErr) {
+          console.error("Automated Chat booking notification failed", chatErr);
+        }
+      }
+    };
+
+    window.addEventListener("dreamscape_new_booking", handleNewBooking);
+    return () => {
+      window.removeEventListener("dreamscape_new_booking", handleNewBooking);
+    };
+  }, [accessToken]);
+
   // Sign in requesting Google Workspace scopes
   const signInWithWorkspace = async (): Promise<string> => {
     if (!isFirebaseEnabled || !auth) {
@@ -72,7 +96,9 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
     const provider = new GoogleAuthProvider();
     provider.addScope("https://www.googleapis.com/auth/forms.body");
     provider.addScope("https://www.googleapis.com/auth/drive.file");
-    provider.addScope("https://www.googleapis.com/auth/gmail");
+    provider.addScope("https://www.googleapis.com/auth/gmail.send");
+    provider.addScope("https://www.googleapis.com/auth/chat.spaces.readonly");
+    provider.addScope("https://www.googleapis.com/auth/chat.messages.create");
 
     try {
       setIsReconnecting(true);
@@ -89,6 +115,9 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
       const isPopupClosed = error?.code === "auth/popup-closed-by-user" || error?.message?.includes("popup-closed-by-user");
       if (isPopupClosed) {
         console.warn("Workspace connection canceled: Login popup was closed by user.");
+        const friendlyError = new Error("Connection canceled: The sign-in popup window was closed before completion. Please try again.");
+        (friendlyError as any).code = "auth/popup-closed-by-user";
+        throw friendlyError;
       } else {
         console.error("Workspace auth error:", error);
       }
@@ -216,8 +245,8 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
   };
 
   // Send a custom email via the Gmail REST API (converting standard message to raw MIME base64url)
-  const sendEmailViaGmail = async (to: string, subject: string, messageBody: string): Promise<any> => {
-    let activeToken = accessToken;
+  const sendEmailViaGmail = async (to: string, subject: string, messageBody: string, tokenOverride?: string): Promise<any> => {
+    let activeToken = tokenOverride || accessToken;
     if (!activeToken) {
       activeToken = await signInWithWorkspace();
     }
@@ -259,6 +288,56 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
       return await response.json();
     } catch (err) {
       console.error("Failed to send email via Gmail:", err);
+      throw err;
+    }
+  };
+
+  // Fetch accessible Google Chat spaces
+  const listChatSpaces = async (tokenOverride?: string): Promise<any[]> => {
+    let activeToken = tokenOverride || accessToken;
+    if (!activeToken) {
+      activeToken = await signInWithWorkspace();
+    }
+    try {
+      const response = await fetch("https://chat.googleapis.com/v1/spaces", {
+        headers: {
+          Authorization: `Bearer ${activeToken}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Chat API failure: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.spaces || [];
+    } catch (err) {
+      console.error("Failed to list Google Chat spaces:", err);
+      throw err;
+    }
+  };
+
+  // Send message to Google Chat space
+  const sendChatMessage = async (spaceName: string, text: string, tokenOverride?: string): Promise<any> => {
+    let activeToken = tokenOverride || accessToken;
+    if (!activeToken) {
+      activeToken = await signInWithWorkspace();
+    }
+    try {
+      const response = await fetch(`https://chat.googleapis.com/v1/${spaceName}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${activeToken}`
+        },
+        body: JSON.stringify({
+          text: text
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Chat Send API failure: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error(`Failed to send message to Google Chat space ${spaceName}:`, err);
       throw err;
     }
   };
@@ -347,6 +426,17 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
         console.error("Automated lead notification email failed", gmailErr);
       }
     }
+
+    // Trigger Google Chat notification if active token and chat space selected!
+    const savedSpaceName = localStorage.getItem("dreamscape_selected_chat_space");
+    if (accessToken && savedSpaceName) {
+      try {
+        const chatMessage = `💬 *New Inquiry Received*\n*Client Name:* ${name}\n*Email:* ${email}\n*Phone:* ${phone || "N/A"}\n*Message:* ${message}`;
+        await sendChatMessage(savedSpaceName, chatMessage);
+      } catch (chatErr) {
+        console.error("Automated Chat lead notification failed", chatErr);
+      }
+    }
   };
 
   return (
@@ -361,7 +451,9 @@ export const GoogleWorkspaceProvider: React.FC<{ children: React.ReactNode }> = 
       signOutWorkspace,
       createWorkspaceIntegration,
       submitContactInquiry,
-      sendEmailViaGmail
+      sendEmailViaGmail,
+      listChatSpaces,
+      sendChatMessage
     }}>
       {children}
     </GoogleWorkspaceContext.Provider>

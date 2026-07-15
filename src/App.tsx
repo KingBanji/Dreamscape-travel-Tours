@@ -11,10 +11,12 @@ import ReviewSection from "./components/ReviewSection";
 import FAQSection from "./components/FAQSection";
 import TeamSection from "./components/TeamSection";
 import ContactSection from "./components/ContactSection";
+import PromotionalVideoSection from "./components/PromotionalVideoSection";
 import Footer from "./components/Footer";
-import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users, Heart } from "lucide-react";
+import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users, Heart, Ship, Sunset, ArrowUp } from "lucide-react";
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
+import { useCurrency } from "./lib/CurrencyContext";
 // @ts-ignore
 import liquidGlassBg from "./assets/images/liquid_glass_bg_1780913358891.png";
 
@@ -32,6 +34,7 @@ const MusicTourRegisterModal = lazy(() => import("./components/MusicTourRegister
 const AdminConsoleDrawer = lazy(() => import("./components/AdminConsoleDrawer"));
 const AuthModal = lazy(() => import("./components/AuthModal"));
 const AdminPortalPage = lazy(() => import("./components/AdminPortalPage"));
+const VideosPage = lazy(() => import("./components/VideosPage"));
 
 // Simple elegant loader skeleton for Suspense fallbacks
 function LazyLoader() {
@@ -47,6 +50,7 @@ function LazyLoader() {
 
 export default function App() {
   const { language } = useLanguage();
+  const { formatAmount } = useCurrency();
   const {
     user,
     isDbEnabled,
@@ -57,21 +61,10 @@ export default function App() {
     addReview,
     signIn,
     signOut,
+    tours,
   } = useAuthAndData();
 
-  const [tours, setTours] = useState<TourPackage[]>(() => {
-    const saved = localStorage.getItem("dreamscape_managed_tours");
-    return saved ? JSON.parse(saved) : TOUR_PACKAGES;
-  });
-
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("dreamscape_managed_tours");
-    if (saved) {
-      setTours(JSON.parse(saved));
-    }
-  }, [currentPath]);
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -97,6 +90,32 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("dreamscape_theme", theme);
   }, [theme]);
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight;
+      const visibleHeight = window.innerHeight;
+      const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+
+      // Check if user has reached the bottom (within 100px of bottom)
+      const reachedBottom = (totalHeight - visibleHeight - scrollPosition) < 100;
+      setShowScrollTop(reachedBottom && scrollPosition > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
 
   const [searchFilter, setSearchFilter] = useState<{
     destinationId: string;
@@ -155,8 +174,34 @@ export default function App() {
   const [isSpotlightExpanded, setIsSpotlightExpanded] = useState(false);
   const [spotlightLightboxOpen, setSpotlightLightboxOpen] = useState(false);
   const [spotlightSlideIndex, setSpotlightSlideIndex] = useState(0);
+  const [spotlightTouchStart, setSpotlightTouchStart] = useState<number | null>(null);
+  const [spotlightTouchEnd, setSpotlightTouchEnd] = useState<number | null>(null);
 
   const spotlightSlides = [
+    {
+      url: "/videos/download.mp4",
+      title: language === "fr" ? "Aperçu de la Retraite des Chutes de Shantumbu" : "Shantumbu Falls Retreat Promo",
+      description: language === "fr"
+        ? "Regardez notre vidéo promotionnelle exclusive capturant la beauté brute et paisible des chutes de Shantumbu."
+        : "Watch our exclusive promotional showcase capturing the raw, peaceful beauty of Shantumbu Falls.",
+      isVideo: true,
+    },
+    {
+      url: "/videos/shantumbu promo video 1.mp4",
+      title: language === "fr" ? "Aventure des Chutes de Shantumbu - Partie 1" : "Shantumbu Falls Showcase - Part 1",
+      description: language === "fr"
+        ? "Vivez l'expérience immersive ultime de randonnée et d'exploration aux chutes de Shantumbu."
+        : "Experience the ultimate immersive hiking and exploring journey at the magnificent Shantumbu Falls.",
+      isVideo: true,
+    },
+    {
+      url: "/videos/shantumbu promo video 2.mp4",
+      title: language === "fr" ? "Évasion Naturelle - Partie 2" : "Serene Nature Escape - Part 2",
+      description: language === "fr"
+        ? "Détendez-vous au bord des piscines naturelles et profitez de la beauté tranquille de l'escarpement."
+        : "Unwind by the pure natural rock pools and embrace the peaceful, quiet atmosphere of the escarpment.",
+      isVideo: true,
+    },
     {
       url: "/images/active spotlight 2.jpg",
       title: language === "fr" ? "Retraite des Chutes de Shantumbu" : "Shantumbu Falls Retreat",
@@ -210,6 +255,9 @@ export default function App() {
         } else if (href === "/admin") {
           e.preventDefault();
           navigateTo("/admin");
+        } else if (href === "/videos") {
+          e.preventDefault();
+          navigateTo("/videos");
         }
       }
     };
@@ -405,6 +453,17 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
     );
   }
 
+  if (currentPath === "/videos") {
+    return (
+      <Suspense fallback={<LazyLoader />}>
+        <VideosPage
+          onBackToMain={() => navigateTo("/")}
+          theme={theme}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <div
       className={`relative min-h-screen selection:bg-brand-gold selection:text-brand-dark flex flex-col justify-between overflow-hidden transition-all duration-1000 ${
@@ -437,6 +496,11 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         bookingCount={bookings.length}
         theme={theme}
         onChangeTheme={(t) => setTheme(t)}
+        onOpenAuth={(tab) => {
+          setAppAuthModalTab(tab);
+          setAppAuthModalOpen(true);
+        }}
+        isAuthModalOpen={appAuthModalOpen}
       />
 
       {/* ─── MAIN CONTENT ─── */}
@@ -449,6 +513,10 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           onBookTour={() => {
             setActiveCheckoutPkg(undefined);
             setBookingModalOpen(true);
+          }}
+          onOpenAuth={(tab) => {
+            setAppAuthModalTab(tab);
+            setAppAuthModalOpen(true);
           }}
         />
 
@@ -602,13 +670,28 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                   setSpotlightLightboxOpen(true);
                   setSpotlightSlideIndex(0);
                 }}
-                title={language === "fr" ? "Cliquez pour ouvrir la galerie de l'oasis cachée" : "Click to view hidden oasis gallery"}
+                title={language === "fr" ? "Cliquez pour regarder la promo vidéo de Shantumbu" : "Click to watch Shantumbu Promo Video"}
                 referrerPolicy="no-referrer"
               />
 
+              {/* Centered Play Button overlay */}
+              <div 
+                onClick={() => {
+                  setSpotlightLightboxOpen(true);
+                  setSpotlightSlideIndex(0);
+                }}
+                className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/35 transition-all duration-300 cursor-pointer"
+              >
+                <div className="w-16 h-16 rounded-full bg-brand-gold/90 hover:bg-brand-gold text-brand-dark flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 border border-white/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6 fill-brand-dark ml-0.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                  </svg>
+                </div>
+              </div>
+
               <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-black/60 to-transparent pointer-events-none"></div>
 
-              <div className="absolute top-4 inset-x-4 flex justify-between items-center z-10">
+              <div className="absolute top-4 inset-x-4 flex justify-between items-start z-10">
                 <button 
                   onClick={() => {
                     const dest = DESTINATIONS.find(d => d.id === "shantumbu-falls");
@@ -621,27 +704,34 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                   </svg>
                 </button>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 text-xs font-semibold tracking-wider text-cyan-200 uppercase bg-cyan-950/60 backdrop-blur-md rounded-full border border-cyan-500/30">
-                    {language === "fr" ? "Aventure" : "Adventure"}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSpotlightSaved(prev => !prev);
-                    }}
-                    className="p-2 rounded-full bg-black/30 backdrop-blur-md text-white hover:bg-black/50 transition border border-white/10 cursor-pointer flex items-center justify-center group/heart"
-                    title={isSpotlightSaved ? (language === "fr" ? "Retirer des favoris" : "Remove from saved") : (language === "fr" ? "Ajouter aux favoris" : "Save experience")}
-                    aria-label={isSpotlightSaved ? "Remove from saved" : "Save experience"}
-                  >
-                    <Heart 
-                      className={`w-4 h-4 transition-all duration-300 ${
-                        isSpotlightSaved 
-                          ? "fill-red-500 text-red-500 scale-110" 
-                          : "text-white group-hover/heart:text-red-400 group-hover/heart:scale-110"
-                      }`} 
-                    />
-                  </button>
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 text-xs font-semibold tracking-wider text-cyan-200 uppercase bg-cyan-950/60 backdrop-blur-md rounded-full border border-cyan-500/30">
+                      {language === "fr" ? "Aventure" : "Adventure"}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsSpotlightSaved(prev => !prev);
+                      }}
+                      className="p-2 rounded-full bg-black/30 backdrop-blur-md text-white hover:bg-black/50 transition border border-white/10 cursor-pointer flex items-center justify-center group/heart"
+                      title={isSpotlightSaved ? (language === "fr" ? "Retirer des favoris" : "Remove from saved") : (language === "fr" ? "Ajouter aux favoris" : "Save experience")}
+                      aria-label={isSpotlightSaved ? "Remove from saved" : "Save experience"}
+                    >
+                      <Heart 
+                        className={`w-4 h-4 transition-all duration-300 ${
+                          isSpotlightSaved 
+                            ? "fill-red-500 text-red-500 scale-110" 
+                            : "text-white group-hover/heart:text-red-400 group-hover/heart:scale-110"
+                        }`} 
+                      />
+                    </button>
+                  </div>
+                  {/* Subtle Promo Video badge below adventure & love icon */}
+                  <div className="bg-brand-gold/80 text-brand-dark px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-wider flex items-center gap-1 shadow-md pointer-events-none">
+                    <span className="w-1 h-1 rounded-full bg-brand-dark animate-pulse" />
+                    PROMO VIDEO
+                  </div>
                 </div>
               </div>
 
@@ -744,11 +834,11 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col justify-between items-center py-6 px-4 select-none overflow-hidden"
+                className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col items-center py-4 sm:py-6 px-4 select-none overflow-y-auto"
                 onClick={() => setSpotlightLightboxOpen(false)}
               >
                 {/* Top bar with brand and Close button */}
-                <div className="w-full max-w-6xl flex justify-between items-center z-50 px-4">
+                <div className="w-full max-w-6xl flex justify-between items-center z-50 px-4 flex-shrink-0">
                   <div className="flex flex-col text-left">
                     <span className="text-orange-500 text-[10px] font-mono uppercase tracking-[0.25em] font-extrabold animate-pulse">
                       ✦ {language === "fr" ? "DÉCOUVERTE CHUTES SHANTUMBU" : "SHANTUMBU FALLS DISCOVERY"} ✦
@@ -769,7 +859,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                 </div>
 
                 {/* Main Carousel Slider */}
-                <div className="relative w-full max-w-5xl flex-1 flex items-center justify-center my-4">
+                <div className="relative w-full max-w-5xl flex-shrink-0 sm:flex-1 flex items-center justify-center my-2 sm:my-4">
                   {/* Previous Arrow */}
                   <button
                     onClick={(e) => {
@@ -786,25 +876,62 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
                   {/* Slide Container */}
                   <div 
-                    className="relative w-full h-[55vh] md:h-[60vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black"
+                    className="relative w-full h-[38vh] sm:h-[45vh] md:h-[50vh] rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black touch-pan-y"
                     onClick={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => {
+                      setSpotlightTouchStart(e.targetTouches[0].clientX);
+                    }}
+                    onTouchMove={(e) => {
+                      setSpotlightTouchEnd(e.targetTouches[0].clientX);
+                    }}
+                    onTouchEnd={() => {
+                      if (spotlightTouchStart === null || spotlightTouchEnd === null) return;
+                      const distance = spotlightTouchStart - spotlightTouchEnd;
+                      const minSwipeDistance = 40; // responsive swipe sensitivity
+                      if (distance > minSwipeDistance) {
+                        // Swipe Left -> Show Next Slide
+                        setSpotlightSlideIndex((prev) => (prev + 1) % spotlightSlides.length);
+                      } else if (distance < -minSwipeDistance) {
+                        // Swipe Right -> Show Previous Slide
+                        setSpotlightSlideIndex((prev) => (prev - 1 + spotlightSlides.length) % spotlightSlides.length);
+                      }
+                      setSpotlightTouchStart(null);
+                      setSpotlightTouchEnd(null);
+                    }}
                   >
                     <AnimatePresence mode="wait">
-                      <motion.img
-                        key={spotlightSlideIndex}
-                        src={spotlightSlides[spotlightSlideIndex].url}
-                        alt={spotlightSlides[spotlightSlideIndex].title}
-                        referrerPolicy="no-referrer"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.02 }}
-                        transition={{ duration: 0.4 }}
-                        className="w-full h-full object-cover"
-                      />
+                      {spotlightSlides[spotlightSlideIndex].isVideo ? (
+                        <motion.video
+                          key={spotlightSlideIndex}
+                          src={spotlightSlides[spotlightSlideIndex].url}
+                          controls
+                          autoPlay
+                          playsInline
+                          className="w-full h-full object-contain"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4 }}
+                        />
+                      ) : (
+                        <motion.img
+                          key={spotlightSlideIndex}
+                          src={spotlightSlides[spotlightSlideIndex].url}
+                          alt={spotlightSlides[spotlightSlideIndex].title}
+                          referrerPolicy="no-referrer"
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 1.02 }}
+                          transition={{ duration: 0.4 }}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </AnimatePresence>
 
                     {/* Gradient Overlay */}
-                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+                    {!spotlightSlides[spotlightSlideIndex].isVideo && (
+                      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+                    )}
                   </div>
 
                   {/* Next Arrow */}
@@ -824,7 +951,9 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
                 {/* Bottom Card (The Spotlight Hidden Hero overlay) */}
                 <div 
-                  className="w-full max-w-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 p-6 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-4 z-40 relative -mt-16 sm:-mt-20 mx-4"
+                  className={`w-full max-w-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 p-4 sm:p-6 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-3 sm:gap-4 z-40 relative mx-4 flex-shrink-0 ${
+                    spotlightSlides[spotlightSlideIndex].isVideo ? "mt-4" : "-mt-10 sm:-mt-14"
+                  }`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div>
@@ -885,6 +1014,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           onCustomizeDestination={handleFocusDestinationOnPlanner}
           searchFilter={searchFilter}
           onClearSearch={() => setSearchFilter(null)}
+          onSelectPackage={handleSelectPredefinedPackage}
         />
 
         {/* 3. BUILD YOUR OWN — custom itinerary planner */}
@@ -903,6 +1033,8 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         />
 
         {/* 5. CONTACT + RESCHEDULE POLICY — close the sale */}
+        <PromotionalVideoSection />
+
         <ContactSection />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 w-full relative z-20">
@@ -1158,6 +1290,23 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         <AuthModal isOpen={appAuthModalOpen} onClose={() => setAppAuthModalOpen(false)} initialTab={appAuthModalTab} />
         <FunGroupToursModal isOpen={funGroupToursModalOpen} onClose={() => setFunGroupToursModalOpen(false)} />
       </Suspense>
+
+      {/* Floating Center Back to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+            onClick={scrollToTop}
+            className="fixed bottom-6 left-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-brand-teal text-white font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-brand-teal-light hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/30 backdrop-blur-md"
+            aria-label="Scroll back to top"
+          >
+            <ArrowUp className="w-4 h-4 animate-bounce" />
+            <span>{language === "fr" ? "Retour en Haut" : "Back to Top"}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Membership Benefits Modal */}
       <AnimatePresence>

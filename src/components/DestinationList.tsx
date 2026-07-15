@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Destination } from "../types";
-import { MapPin, Calendar, Clock, ArrowRight, Filter, Compass, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { MapPin, Calendar, Clock, ArrowRight, Filter, Compass, ChevronLeft, ChevronRight, X, Maximize2, Sunset } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCurrency } from "../lib/CurrencyContext";
 import { useLanguage } from "../lib/LanguageContext";
 import LiveWeatherWidget from "./LiveWeatherWidget";
+import { TOUR_PACKAGES } from "../data/travelData";
 
 interface DestinationListProps {
   destinations: Destination[];
@@ -12,6 +13,7 @@ interface DestinationListProps {
   onCustomizeDestination: (dest: Destination) => void;
   searchFilter: { destinationId: string; activityLevel: string; guestCount: number } | null;
   onClearSearch: () => void;
+  onSelectPackage?: (pkg: any) => void;
 }
 
 export default function DestinationList({
@@ -19,7 +21,8 @@ export default function DestinationList({
   onSelectDestination,
   onCustomizeDestination,
   searchFilter,
-  onClearSearch
+  onClearSearch,
+  onSelectPackage
 }: DestinationListProps) {
   const { formatAmount } = useCurrency();
   const { language } = useLanguage();
@@ -127,6 +130,21 @@ export default function DestinationList({
       return true;
     });
   }, [destinations, selectedCategory, searchFilter]);
+
+  const showBoatCruiseCard = useMemo(() => {
+    if (selectedCategory !== "All" && selectedCategory !== "Water Adventures") {
+      return false;
+    }
+    if (searchFilter) {
+      if (searchFilter.destinationId && searchFilter.destinationId !== "lower-zambezi") {
+        return false;
+      }
+      if (searchFilter.activityLevel && searchFilter.activityLevel !== "Easy" && searchFilter.activityLevel !== "Moderate") {
+        return false;
+      }
+    }
+    return true;
+  }, [selectedCategory, searchFilter]);
 
   return (
     <section id="destinations" className="py-24 bg-brand-sand transition-all">
@@ -264,6 +282,21 @@ export default function DestinationList({
 
                       <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-brand-dark/10 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-90 pointer-events-none" />
 
+                      {/* Floating Expand/Lightbox trigger button shown on card hover */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(dest.name, displayImg, dest.gallery);
+                          }}
+                          className="pointer-events-auto w-12 h-12 rounded-full bg-brand-dark/95 hover:bg-brand-gold text-brand-gold hover:text-brand-dark border border-brand-teal/30 hover:border-brand-gold shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer"
+                          title="Expand this tour image to full screen lightbox"
+                        >
+                          <Maximize2 className="w-5 h-5 transition-colors" />
+                        </button>
+                      </div>
+
                       {/* Floating prev/next overlay buttons for gallery cycling */}
                       {hasGallery && (
                         <div className="absolute inset-0 flex items-center justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-25 pointer-events-none">
@@ -286,7 +319,7 @@ export default function DestinationList({
 
                       {/* Multi-image indicators tracking indicator line dots */}
                       {hasGallery && dest.gallery && (
-                        <div className="absolute top-4 right-4 z-30 flex gap-1.5 bg-brand-dark/40 backdrop-blur-xs py-1 px-2 rounded-full border border-white/10">
+                        <div className="absolute top-4 right-4 z-30 flex gap-1.5 bg-brand-dark/40 backdrop-blur-xs py-1 px-2 rounded-full border border-white/10 pointer-events-auto">
                           {dest.gallery.map((_, index) => (
                             <div
                               key={index}
@@ -307,20 +340,22 @@ export default function DestinationList({
                       )}
 
                       {/* Floating Season Tag & live weather widget */}
-                      <div className="absolute top-4 left-4 z-30 flex flex-col gap-1.5 items-start">
-                        <span className="bg-brand-dark/95 backdrop-blur-sm shadow-md text-[10px] font-mono font-bold text-brand-gold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-brand-teal/20">
+                      <div className="absolute top-4 left-4 z-30 flex flex-col gap-1.5 items-start pointer-events-none">
+                        <span className="pointer-events-auto bg-brand-dark/95 backdrop-blur-sm shadow-md text-[10px] font-mono font-bold text-brand-gold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-brand-teal/20">
                           <Calendar className="w-3 h-3 text-brand-gold" /> {dest.bestSeason}
                         </span>
                         {dest.id === "kundalila-falls" && (
-                          <span className="bg-amber-500 text-brand-dark shadow-md text-[9px] font-mono font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-amber-600 animate-pulse">
+                          <span className="pointer-events-auto bg-amber-500 text-brand-dark shadow-md text-[9px] font-mono font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-amber-600 animate-pulse">
                             ⛺ PRE-SALE • MARCH 2027 • K3,800
                           </span>
                         )}
-                        <LiveWeatherWidget destinationId={dest.id} />
+                        <div className="pointer-events-auto">
+                          <LiveWeatherWidget destinationId={dest.id} />
+                        </div>
                       </div>
 
-                      <div className="absolute bottom-4 left-4 right-4 z-30 flex justify-between items-end">
-                        <div className="flex flex-col">
+                      <div className="absolute bottom-4 left-4 right-4 z-30 flex justify-between items-end pointer-events-none">
+                        <div className="flex flex-col pointer-events-auto">
                           <span className="text-[10px] font-mono tracking-widest text-[#2dd4bf] uppercase font-bold">
                             {dest.category} // LOC-{dest.id.slice(0, 3).toUpperCase()}
                           </span>
@@ -334,7 +369,7 @@ export default function DestinationList({
                             e.stopPropagation();
                             onSelectDestination(dest);
                           }}
-                          className="bg-brand-gold hover:bg-brand-gold-light active:scale-95 text-brand-dark font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 transition-all cursor-pointer z-30"
+                          className="pointer-events-auto bg-brand-gold hover:bg-brand-gold-light hover:scale-105 hover:shadow-xl active:scale-95 text-brand-dark font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 transition-all cursor-pointer z-30"
                         >
                           {dest.id === "kundalila-falls" 
                             ? "Reserve" 
@@ -409,6 +444,136 @@ export default function DestinationList({
                 </motion.div>
               );
             })}
+
+            {showBoatCruiseCard && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ 
+                  layout: { type: "spring", stiffness: 180, damping: 25 }
+                }}
+                onClick={() => {
+                  if (onSelectPackage) {
+                    const cruisePkg = TOUR_PACKAGES.find((p) => p.id === "zambezi-boat-cruise-chills");
+                    if (cruisePkg) {
+                      onSelectPackage(cruisePkg);
+                    }
+                  }
+                }}
+                className="liquid-glass-card overflow-hidden hover:shadow-2xl hover:border-white/50 group flex flex-col h-full transform transition-all duration-500 hover:-translate-y-2 hover:bg-white/60 cursor-pointer"
+              >
+                {/* Card Cover */}
+                <div className="relative h-64 overflow-hidden z-0">
+                  <img
+                    src="/images/boatcruise hero.png"
+                    alt="Boat cruise and chills kafue zambia"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out cursor-zoom-in"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox("Boat cruise and chills kafue zambia", "/images/boatcruise hero.png", ["/images/boatcruise hero.png"]);
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-brand-dark/10 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-90 pointer-events-none" />
+
+                  {/* Floating Season Tag */}
+                  <div className="absolute top-4 left-4 z-30 flex flex-col gap-1.5 items-start pointer-events-none">
+                    <span className="pointer-events-auto bg-brand-teal text-white shadow-md text-[10px] font-mono font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 border border-brand-teal/20">
+                      <Sunset className="w-3 h-3" /> BEST SEASON: ALL YEAR ROUND
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 right-4 z-30 flex justify-between items-end pointer-events-none">
+                    <div className="flex flex-col pointer-events-auto">
+                      <span className="text-[10px] font-mono tracking-widest text-[#2dd4bf] uppercase font-bold">
+                        Water Adventures // PKG-CRUISE
+                      </span>
+                      <h3 className="font-serif text-lg font-bold text-white tracking-tight drop-shadow-md">
+                        Boat cruise and chills kafue zambia
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onSelectPackage) {
+                          const cruisePkg = TOUR_PACKAGES.find((p) => p.id === "zambezi-boat-cruise-chills");
+                          if (cruisePkg) {
+                            onSelectPackage(cruisePkg);
+                          }
+                        }
+                      }}
+                      className="pointer-events-auto bg-brand-gold hover:bg-brand-gold-light hover:scale-105 hover:shadow-xl active:scale-95 text-brand-dark font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 transition-all cursor-pointer z-30"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="p-6 flex-grow flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 text-xs font-mono text-brand-teal justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-brand-gold" />
+                        <span className="font-medium text-brand-medium">Kafue, Zambia</span>
+                      </div>
+                      <span className="text-[9px] text-brand-teal/70 font-mono tracking-wider font-semibold">
+                        [ DAILY CRUISE ]
+                      </span>
+                    </div>
+
+                    <p className="text-brand-dark/70 text-sm leading-relaxed line-clamp-3 mb-5">
+                      Experience the ultimate curated river escape in Kafue, Zambia. Enjoy drinks, delicious snacks, a scenic boat cruise, interactive group games, comfortable transport to and from Lusaka, and an outdoor braai.
+                    </p>
+
+                    {/* Highlights quick tags */}
+                    <div className="flex flex-wrap gap-1.5 mb-6">
+                      <span className="bg-brand-sand text-[10px] font-semibold text-brand-medium px-2.5 py-1 rounded-lg border border-brand-sand-dark">
+                        ✓ Drinks & Snacks
+                      </span>
+                      <span className="bg-brand-sand text-[10px] font-semibold text-brand-medium px-2.5 py-1 rounded-lg border border-brand-sand-dark">
+                        ✓ Boat Cruise
+                      </span>
+                      <span className="bg-brand-sand text-[10px] font-semibold text-brand-medium px-2.5 py-1 rounded-lg border border-brand-sand-dark">
+                        ✓ Games & Braai
+                      </span>
+                      <span className="bg-brand-sand text-[10px] font-semibold text-brand-medium px-2.5 py-1 rounded-lg border border-brand-sand-dark">
+                        ✓ Transport (to/from Lusaka)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Footer Actions Row - Price and Book button */}
+                  <div className="pt-4 border-t border-brand-sand-dark/80 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-brand-teal uppercase font-bold tracking-wider">Price per person</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-bold font-mono text-brand-dark">{formatAmount(750)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectPackage) {
+                            const cruisePkg = TOUR_PACKAGES.find((p) => p.id === "zambezi-boat-cruise-chills");
+                            if (cruisePkg) {
+                              onSelectPackage(cruisePkg);
+                            }
+                          }
+                        }}
+                        className="px-3.5 py-1.5 bg-brand-dark hover:bg-brand-medium text-brand-gold hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer group-hover:bg-brand-teal group-hover:text-white"
+                      >
+                        Book Package <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
           </motion.div>
         )}

@@ -185,8 +185,13 @@ export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, provider);
     return result.user;
-  } catch (error) {
-    console.error("Google authentication error:", error);
+  } catch (error: any) {
+    const errCode = error?.code || "";
+    if (errCode === "auth/popup-closed-by-user" || errCode === "auth/popup-blocked" || errCode === "auth/cancelled-popup-request") {
+      console.warn("Google authentication canceled or blocked by user/browser:", error);
+    } else {
+      console.error("Google authentication error:", error);
+    }
     throw error;
   }
 }

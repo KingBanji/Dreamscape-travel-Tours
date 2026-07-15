@@ -4,6 +4,7 @@ import { X, Flame, Users, Calendar, Compass, Sparkles, Check, MessageSquare, Gla
 import { useLanguage } from "../lib/LanguageContext";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import Confetti from "./Confetti";
 
 interface FunGroupToursModalProps {
   isOpen: boolean;
@@ -528,7 +529,8 @@ export default function FunGroupToursModal({ isOpen, onClose }: FunGroupToursMod
                       </div>
                     </form>
                   ) : (
-                    <div className="py-4 text-center flex flex-col items-center justify-center gap-3">
+                    <div className="py-4 text-center flex flex-col items-center justify-center gap-3 relative">
+                      <Confetti />
                       <span className="p-3 bg-orange-500/10 rounded-full border border-orange-500 animate-pulse">
                         <CheckCircle2 className="w-8 h-8 text-orange-400" />
                       </span>
