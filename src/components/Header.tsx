@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenMyTrips: () => void;
   onOpenCeremonies: () => void;
   onOpenPackages: () => void;
+  onOpenMediaGallery: () => void;
   bookingCount: number;
   theme: "sand" | "dark";
   onChangeTheme: (theme: "sand" | "dark") => void;
@@ -24,6 +25,7 @@ export default function Header({
   onOpenMyTrips, 
   onOpenCeremonies, 
   onOpenPackages, 
+  onOpenMediaGallery,
   bookingCount, 
   theme, 
   onChangeTheme,
@@ -167,13 +169,13 @@ export default function Header({
             >
               {t("contact")}
             </button>
-            <a
-              href="/videos"
-              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0"
-              aria-label="View promotional videos"
+            <button
+              onClick={onOpenMediaGallery}
+              className="font-medium text-[10px] xl:text-xs font-mono uppercase tracking-wider xl:tracking-widest text-brand-sand/80 hover:text-brand-gold transition-colors py-1 cursor-pointer whitespace-nowrap flex-shrink-0 bg-transparent border-none outline-none"
+              aria-label="View media gallery, videos, photos and brochures"
             >
-              Videos
-            </a>
+              {language === "fr" ? "Galerie" : "Gallery"}
+            </button>
           </nav>
 
           {/* Right Action buttons */}
@@ -392,14 +394,16 @@ export default function Header({
           >
             {t("contact")}
           </button>
-          <a
-            href="/videos"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-brand-sand hover:bg-brand-medium hover:text-brand-gold transition-colors"
-            aria-label="View promotional videos on mobile"
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onOpenMediaGallery();
+            }}
+            className="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-brand-sand hover:bg-brand-medium hover:text-brand-gold transition-colors bg-transparent border-none outline-none cursor-pointer"
+            aria-label="View media gallery, videos, photos and brochures on mobile"
           >
-            Videos & Promos
-          </a>
+            🖼️ {language === "fr" ? "Galerie & Médias" : "Gallery & Media"}
+          </button>
 
           {!user && (
             <div className="grid grid-cols-2 gap-2 pt-4 border-t border-white/5 mt-4">

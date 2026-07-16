@@ -17,6 +17,7 @@ import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info,
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
 import { useCurrency } from "./lib/CurrencyContext";
+import MediaGalleryModal from "./components/MediaGalleryModal";
 // @ts-ignore
 import liquidGlassBg from "./assets/images/liquid_glass_bg_1780913358891.png";
 
@@ -115,15 +116,15 @@ export default function App() {
       const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
 
       // Track scroll direction & position for Side Toggles
-      if (scrollPosition <= 50) {
+      if (scrollPosition <= 200) {
         // At the top of the page, show side controls
         setShowSideControls(true);
-      } else if (scrollPosition > lastScrollY) {
-        // Scrolling down: hide side controls completely
+      } else {
+        // Scrolling down/away from the top page: hide side controls completely
         setShowSideControls(false);
-      } else if (scrollPosition < lastScrollY) {
-        // Scrolling up: show side controls
-        setShowSideControls(true);
+        // Automatically close the drawers to keep them hidden when scrolled down
+        setPackagesDrawerOpen(false);
+        setSpotifyDrawerOpen(false);
       }
 
       lastScrollY = scrollPosition;
@@ -163,6 +164,7 @@ export default function App() {
   const [ceremoniesDrawerOpen, setCeremoniesDrawerOpen] = useState(false);
   const [packagesDrawerOpen, setPackagesDrawerOpen] = useState(false);
   const [spotifyDrawerOpen, setSpotifyDrawerOpen] = useState(false);
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
   const [activePlaylistId, setActivePlaylistId] = useState<string>(() => {
     return localStorage.getItem("dreamscape_active_playlist") || "zambia";
   });
@@ -538,6 +540,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         onOpenMyTrips={() => setTripsDrawerOpen(true)}
         onOpenCeremonies={() => setCeremoniesDrawerOpen(true)}
         onOpenPackages={() => setPackagesDrawerOpen(true)}
+        onOpenMediaGallery={() => setMediaGalleryOpen(true)}
         bookingCount={bookings.length}
         theme={theme}
         onChangeTheme={(t) => setTheme(t)}
@@ -566,129 +569,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           onOpenPackages={() => setPackagesDrawerOpen(true)}
         />
 
-        {/* Custom Membership / Passport Club Welcoming Banner right above destinations */}
-        {!user && (
-          <section id="passport-club-section" className="relative max-w-2xl mx-auto px-4 sm:px-6 my-10 relative z-30">
-            <div className="relative overflow-hidden rounded-2xl bg-brand-dark/95 border-2 border-[#f97316]/30 p-6 sm:p-8 shadow-xl backdrop-blur-md">
-              {/* Decorative background visual ambient colors matching the logo */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#F97316]/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#38bdf8]/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10 max-w-2xl text-left">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/10 border border-[#f97316]/25 text-[10px] font-mono uppercase tracking-[0.2em] text-[#f97316] font-bold mb-3.5 animate-pulse">
-                  ✦ Dreamscape Passport Club ✦
-                </span>
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-white uppercase tracking-tight leading-tight">
-                  {language === "fr" ? "Rejoignez l'Expédition d'Élite" : "Embark with the Explorer Elite"}
-                </h2>
-                <p className="text-brand-sand/85 text-xs mt-3 leading-relaxed font-sans">
-                  {language === "fr"
-                    ? "Inscrivez-vous sur Dreamscape Tours pour enregistrer vos itinéraires personnalisés, suivre vos empreintes d'animaux sauvages, accumuler des jetons de guide et soumettre des dépôts de safari directs via Mobile Money."
-                    : "Create a Dreamscape Traveler profile to sync bespoke safari itineraries, track wildlife footsteps, earn explorer badges, and authorize instant direct Mobile Money tour deposits securely."}
-                </p>
-
-                {/* Number of Travelers Input */}
-                <div className="mt-5 max-w-xs" id="passport-club-travelers-container">
-                  <label htmlFor="passport-club-travelers" className="block text-brand-sand/70 text-[10px] font-mono uppercase tracking-wider mb-2">
-                    {language === "fr" ? "✦ Nombre de Voyageurs (15 - 33)" : "✦ Number of Travelers (15 - 33)"}
-                  </label>
-                  <input
-                    id="passport-club-travelers"
-                    type="number"
-                    min="15"
-                    max="33"
-                    value={passportTravelers}
-                    onChange={(e) => {
-                      const val = e.target.value === "" ? "" : Number(e.target.value);
-                      setPassportTravelers(val as any);
-                    }}
-                    onBlur={() => {
-                      if (passportTravelers === "" || isNaN(passportTravelers)) {
-                        setPassportTravelers(15);
-                      } else if (passportTravelers < 15) {
-                        setPassportTravelers(15);
-                      } else if (passportTravelers > 33) {
-                        setPassportTravelers(33);
-                      }
-                    }}
-                    className={`w-full bg-slate-900 border text-white text-sm px-4 py-2.5 rounded-xl transition-all font-sans focus:outline-none ${
-                      (passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33))
-                        ? "border-red-500 bg-red-950/40 text-red-100 focus:ring-1 focus:ring-red-500 animate-pulse font-bold"
-                        : "border-[#f97316]/30 hover:border-[#f97316]/60 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                    }`}
-                    placeholder="Enter travelers (15-33)"
-                  />
-                  {passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33) && (
-                    <p className="text-[10px] text-red-400 font-bold font-sans mt-2 animate-bounce">
-                      ⚠️ {language === "fr" ? "Le groupe doit être de 15 à 33 personnes." : "Group must be between 15 and 33 travelers."}
-                    </p>
-                  )}
-                </div>
-
-                {/* The precise HTML segment requested by the user */}
-                <div className="flex flex-wrap gap-4 mt-6">
-                  <a href="/signup" id="passport-club-signup-btn" className="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
-                    Sign Up
-                  </a>
-                  <a href="/login" id="passport-club-login-btn" className="border border-orange-500 text-orange-500 px-6 py-3 rounded-lg hover:bg-orange-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer block text-center">
-                    Log In
-                  </a>
-                </div>
-
-                {/* row of quick action buttons to enhance the registration funnel */}
-                <div className="mt-8 pt-6 border-t border-[#f97316]/20 flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center">
-                  <div className="flex items-center gap-1.5 text-[#f97316]/90 font-mono text-[10px] uppercase font-bold tracking-widest">
-                    <Info className="w-3.5 h-3.5" />
-                    <span>Quick Explorations:</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3.5 w-full sm:w-auto">
-                    <button
-                      onClick={handleDownloadBrochure}
-                      disabled={isBrochureDownloading}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 font-sans"
-                    >
-                      {isBrochureDownloading ? (
-                        <>
-                          <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
-                          <span>Preparing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3.5 h-3.5 text-[#f97316] shrink-0" />
-                          <span>Download Brochure</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => setBenefitsModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#38bdf8]/10 border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans"
-                    >
-                      <Award className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
-                      <span>View Membership Benefits</span>
-                    </button>
-
-                    <button
-                      onClick={() => setFunGroupToursModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans relative overflow-hidden"
-                    >
-                      <span className="relative flex h-2 w-2 mr-0.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-400"></span>
-                      </span>
-                      <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0 animate-flicker" />
-                      <span>{language === "fr" ? "Voyages de Groupe" : "Fun Group Tours"}</span>
-                      <span className="text-[8px] bg-[#f97316]/20 text-orange-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono animate-pulse">
-                        {language === "fr" ? "Aperçu" : "Interactive"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Spotlight Experience Banner featuring the exact card layout from user */}
         <section id="spotlight-section" className="relative max-w-4xl mx-auto px-4 sm:px-6 my-16 z-30">
@@ -1119,6 +1000,137 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         <TeamSection />
 
         <FAQSection faqs={FAQS} />
+
+        {/* Custom Membership / Passport Club Welcoming Banner moved to the bottom as a beautiful landscape banner */}
+        {!user && (
+          <section id="passport-club-section" className="relative max-w-6xl mx-auto px-4 sm:px-6 my-16 relative z-30">
+            <div className="relative overflow-hidden rounded-3xl bg-[#091624]/90 border-2 border-[#f97316]/30 p-8 sm:p-10 shadow-2xl backdrop-blur-md animate-fade-in">
+              {/* Decorative background visual ambient colors matching the logo */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-[#F97316]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#38bdf8]/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                {/* Left landscape part: Text Description */}
+                <div className="lg:col-span-7 text-left flex flex-col gap-3">
+                  <span className="self-start inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/10 border border-[#f97316]/25 text-[10px] font-mono uppercase tracking-[0.2em] text-[#f97316] font-bold animate-pulse">
+                    ✦ Dreamscape Passport Club ✦
+                  </span>
+                  <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white uppercase tracking-tight leading-tight">
+                    {language === "fr" ? "Rejoignez l'Expédition d'Élite" : "Embark with the Explorer Elite"}
+                  </h2>
+                  <p className="text-brand-sand/85 text-sm leading-relaxed font-sans">
+                    {language === "fr"
+                      ? "Inscrivez-vous sur Dreamscape Tours pour enregistrer vos itinéraires personnalisés, suivre vos empreintes d'animaux sauvages, accumuler des jetons de guide et soumettre des dépôts de safari directs via Mobile Money."
+                      : "Create a Dreamscape Traveler profile to sync bespoke safari itineraries, track wildlife footsteps, earn explorer badges, and authorize instant direct Mobile Money tour deposits securely."}
+                  </p>
+                </div>
+
+                {/* Right landscape part: Interaction controls */}
+                <div className="lg:col-span-5 flex flex-col gap-5 bg-black/35 p-6 rounded-2xl border border-[#f97316]/15 w-full">
+                  {/* Number of Travelers Input */}
+                  <div id="passport-club-travelers-container" className="w-full text-left">
+                    <label htmlFor="passport-club-travelers" className="block text-brand-sand/70 text-[10px] font-mono uppercase tracking-wider mb-2">
+                      {language === "fr" ? "✦ Nombre de Voyageurs (15 - 33)" : "✦ Number of Travelers (15 - 33)"}
+                    </label>
+                    <input
+                      id="passport-club-travelers"
+                      type="number"
+                      min="15"
+                      max="33"
+                      value={passportTravelers}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? "" : Number(e.target.value);
+                        setPassportTravelers(val as any);
+                      }}
+                      onBlur={() => {
+                        if (passportTravelers === "" || isNaN(passportTravelers)) {
+                          setPassportTravelers(15);
+                        } else if (passportTravelers < 15) {
+                          setPassportTravelers(15);
+                        } else if (passportTravelers > 33) {
+                          setPassportTravelers(33);
+                        }
+                      }}
+                      className={`w-full bg-slate-900 border text-white text-sm px-4 py-2.5 rounded-xl transition-all font-sans focus:outline-none ${
+                        (passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33))
+                          ? "border-red-500 bg-red-950/40 text-red-100 focus:ring-1 focus:ring-red-500 animate-pulse font-bold"
+                          : "border-[#f97316]/30 hover:border-[#f97316]/60 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                      }`}
+                      placeholder="Enter travelers (15-33)"
+                    />
+                    {passportTravelers !== "" && (passportTravelers < 15 || passportTravelers > 33) && (
+                      <p className="text-[10px] text-red-400 font-bold font-sans mt-2 animate-bounce">
+                        ⚠️ {language === "fr" ? "Le groupe doit être de 15 à 33 personnes." : "Group must be between 15 and 33 travelers."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* The precise HTML segment requested by the user */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <a href="/signup" id="passport-club-signup-btn" className="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer text-center text-xs flex items-center justify-center">
+                      Sign Up
+                    </a>
+                    <a href="/login" id="passport-club-login-btn" className="border border-orange-500 text-orange-500 px-4 py-3 rounded-xl hover:bg-orange-500 hover:text-black transition-all duration-300 transform hover:scale-[1.02] cursor-pointer text-center text-xs flex items-center justify-center">
+                      Log In
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* row of quick action buttons to enhance the registration funnel */}
+              <div className="mt-8 pt-6 border-t border-[#f97316]/20 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center relative z-10">
+                <div className="flex items-center gap-1.5 text-[#f97316]/90 font-mono text-[10px] uppercase font-bold tracking-widest">
+                  <Info className="w-3.5 h-3.5" />
+                  <span>Quick Explorations:</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-3.5 w-full sm:w-auto">
+                  <button
+                    onClick={handleDownloadBrochure}
+                    disabled={isBrochureDownloading}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 font-sans"
+                  >
+                    {isBrochureDownloading ? (
+                      <>
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
+                        <span>Preparing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5 text-[#f97316] shrink-0" />
+                        <span>Download Brochure</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setBenefitsModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#38bdf8]/10 border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans"
+                  >
+                    <Award className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                    <span>View Membership Benefits</span>
+                  </button>
+
+                  <button
+                    onClick={() => setFunGroupToursModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#f97316]/10 border border-[#f97316]/30 hover:border-[#f97316]/60 text-xs text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 font-sans relative overflow-hidden"
+                  >
+                    <span className="relative flex h-2 w-2 mr-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-400"></span>
+                    </span>
+                    <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0 animate-flicker" />
+                    <span>{language === "fr" ? "Voyages de Groupe" : "Fun Group Tours"}</span>
+                    <span className="text-[8px] bg-[#f97316]/20 text-orange-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider font-mono animate-pulse">
+                      {language === "fr" ? "Aperçu" : "Interactive"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}
@@ -1187,6 +1199,12 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           onClose={() => setMusicTourRegisterOpen(false)}
         />
       </Suspense>
+
+      <MediaGalleryModal
+        isOpen={mediaGalleryOpen}
+        onClose={() => setMediaGalleryOpen(false)}
+        theme={theme}
+      />
 
       {/* Side Toggle Buttons for Signature Tours and Spotify & Tour on the Right Side */}
       <div id="side-toggle-buttons" className={`fixed right-0 top-28 sm:top-32 z-45 flex flex-col gap-1 sm:gap-2 select-none transition-all duration-500 ${showSideControls ? "opacity-100 translate-x-0" : "opacity-0 translate-x-12 pointer-events-none"}`}>
