@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { Search, MapPin, Calendar, Compass, Users, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../lib/LanguageContext";
@@ -11,9 +11,10 @@ interface HeroProps {
   destinationKeys: { id: string; name: string }[];
   onBookTour?: () => void;
   onOpenAuth?: (tab: "signup" | "login") => void;
+  onOpenPackages?: () => void;
 }
 
-export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth }: HeroProps) {
+export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth, onOpenPackages }: HeroProps) {
   const { t, language } = useLanguage();
   const { user } = useAuthAndData();
   const [selectedDestId, setSelectedDestId] = useState("");
@@ -21,6 +22,30 @@ export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth
   const [guests, setGuests] = useState(15);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.classList.add("lightbox-active");
+    } else {
+      document.body.classList.remove("lightbox-active");
+    }
+    return () => {
+      document.body.classList.remove("lightbox-active");
+    };
+  }, [lightboxOpen]);
+
+  useEffect(() => {
+    if (user) {
+      setShowWelcome(true);
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowWelcome(false);
+    }
+  }, [user]);
 
   const heroSlides = [
     {
@@ -105,41 +130,60 @@ export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth
 
       {/* Hero Central Content */}
       <div className="relative z-10 max-w-5xl mx-auto text-center mt-8 sm:mt-12">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="flex items-center justify-center gap-3 sm:gap-4 mb-8"
-        >
-          <button
-            onClick={() => {
-              if (onOpenAuth) onOpenAuth("signup");
-            }}
-            className="bg-[#f97316] hover:bg-orange-600 text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-lg hover:scale-[1.05] active:scale-95 border-2 border-[#f97316]"
-          >
-            {language === "fr" ? "S'inscrire" : "Sign Up"}
-          </button>
-          <button
-            onClick={() => {
-              if (onOpenAuth) onOpenAuth("login");
-            }}
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-md border-2 border-white/40 hover:scale-[1.05] active:scale-95"
-          >
-            {language === "fr" ? "Se Connecter" : "Log In"}
-          </button>
-        </motion.div>
+        <div className="flex flex-col items-center justify-center">
+          <AnimatePresence mode="wait">
+            {!user ? (
+              <motion.div
+                key="auth-buttons"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center justify-center gap-3 sm:gap-4 mb-6"
+              >
+                <button
+                  onClick={() => {
+                    if (onOpenAuth) onOpenAuth("signup");
+                  }}
+                  className="bg-[#f97316] hover:bg-orange-600 text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-lg hover:scale-[1.05] active:scale-95 border-2 border-[#f97316]"
+                >
+                  {language === "fr" ? "S'inscrire" : "Sign Up"}
+                </button>
+                <button
+                  onClick={() => {
+                    if (onOpenAuth) onOpenAuth("login");
+                  }}
+                  className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs uppercase tracking-widest transition-all duration-200 cursor-pointer shadow-md border-2 border-white/40 hover:scale-[1.05] active:scale-95"
+                >
+                  {language === "fr" ? "Se Connecter" : "Log In"}
+                </button>
+              </motion.div>
+            ) : showWelcome ? (
+              <motion.div
+                key="welcome-banner"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-teal/20 border-2 border-brand-teal/40 backdrop-blur-md mb-6 text-[11px] font-mono tracking-widest text-brand-gold uppercase font-black shadow-[0_0_15px_rgba(20,184,166,0.15)] select-none hover:bg-brand-teal/30 transition-all duration-300"
+              >
+                <span>✦ {language === "fr" ? `Bienvenue, ${user.displayName || "Explorateur"}` : `Welcome back, ${user.displayName || "Explorer"}`} ✦</span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border-2 border-orange-500/50 backdrop-blur-md mb-6 text-xs font-mono tracking-[0.2em] text-orange-500 uppercase font-extrabold shadow-[0_0_15px_rgba(249,115,22,0.15)] select-none hover:bg-orange-500/20 transition-all duration-300"
-        >
-          <Compass className="w-4 h-4 text-orange-500 animate-spin-slow animate-flicker" />
-          <span>
-            {language === "fr" ? "Explorez la Zambie Comme Jamais" : "Explore Zambia Like Never Before"}
-          </span>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border-2 border-orange-500/50 backdrop-blur-md mb-6 text-xs font-mono tracking-[0.2em] text-orange-500 uppercase font-extrabold shadow-[0_0_15px_rgba(249,115,22,0.15)] select-none hover:bg-orange-500/20 transition-all duration-300"
+          >
+            <Compass className="w-4 h-4 text-orange-500 animate-spin-slow animate-flicker" />
+            <span>
+              {language === "fr" ? "Explorez la Zambie Comme Jamais" : "Explore Zambia Like Never Before"}
+            </span>
+          </motion.div>
+        </div>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -173,16 +217,16 @@ export default function Hero({ onSearch, destinationKeys, onBookTour, onOpenAuth
         >
           <button
             onClick={() => onBookTour?.()}
-            className="px-8 py-4 bg-gradient-to-r from-brand-gold to-brand-gold-light hover:brightness-110 text-brand-dark rounded-full font-bold text-xs sm:text-sm font-mono uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-gold/30 cursor-pointer flex items-center gap-2"
+            className="px-8 py-4 bg-brand-gold hover:bg-brand-gold-light text-brand-dark rounded-full font-bold text-xs sm:text-sm font-mono uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-gold/30 cursor-pointer flex items-center gap-2 shadow-lg"
           >
             {t("bookNow")}
           </button>
-          <a
-            href="#packages"
+          <button
+            onClick={onOpenPackages}
             className="px-8 py-4 bg-brand-medium/60 border border-brand-gold/45 hover:bg-brand-medium/90 text-brand-gold-light rounded-full font-bold text-xs sm:text-sm font-mono uppercase tracking-widest transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer flex items-center gap-2"
           >
             {t("exploreDest")}
-          </a>
+          </button>
         </motion.div>
       </div>
 

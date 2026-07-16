@@ -92,12 +92,41 @@ export default function App() {
   }, [theme]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [showSideControls, setShowSideControls] = useState(true);
 
   useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout | null = null;
+    let lastScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+
     const handleScroll = () => {
+      setIsScrolling(true);
+
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+
+      scrollTimeout = setTimeout(() => {
+        setIsScrolling(false);
+      }, 600);
+
       const totalHeight = document.documentElement.scrollHeight;
       const visibleHeight = window.innerHeight;
       const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+
+      // Track scroll direction & position for Side Toggles
+      if (scrollPosition <= 50) {
+        // At the top of the page, show side controls
+        setShowSideControls(true);
+      } else if (scrollPosition > lastScrollY) {
+        // Scrolling down: hide side controls completely
+        setShowSideControls(false);
+      } else if (scrollPosition < lastScrollY) {
+        // Scrolling up: show side controls
+        setShowSideControls(true);
+      }
+
+      lastScrollY = scrollPosition;
 
       // Check if user has reached the bottom (within 100px of bottom)
       const reachedBottom = (totalHeight - visibleHeight - scrollPosition) < 100;
@@ -107,7 +136,12 @@ export default function App() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
   }, []);
 
   const scrollToTop = () => {
@@ -173,6 +207,17 @@ export default function App() {
   const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
   const [isSpotlightExpanded, setIsSpotlightExpanded] = useState(false);
   const [spotlightLightboxOpen, setSpotlightLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (spotlightLightboxOpen) {
+      document.body.classList.add("lightbox-active");
+    } else {
+      document.body.classList.remove("lightbox-active");
+    }
+    return () => {
+      document.body.classList.remove("lightbox-active");
+    };
+  }, [spotlightLightboxOpen]);
   const [spotlightSlideIndex, setSpotlightSlideIndex] = useState(0);
   const [spotlightTouchStart, setSpotlightTouchStart] = useState<number | null>(null);
   const [spotlightTouchEnd, setSpotlightTouchEnd] = useState<number | null>(null);
@@ -518,6 +563,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
             setAppAuthModalTab(tab);
             setAppAuthModalOpen(true);
           }}
+          onOpenPackages={() => setPackagesDrawerOpen(true)}
         />
 
         {/* Custom Membership / Passport Club Welcoming Banner right above destinations */}
@@ -806,7 +852,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                 <div className="flex gap-2 w-full mt-1">
                   <button 
                     onClick={() => setIsSpotlightExpanded(!isSpotlightExpanded)}
-                    className="flex-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-white border border-white/20 font-semibold text-xs rounded-xl active:scale-[0.98] transition-all shadow-lg cursor-pointer text-center"
+                    className="flex-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-white border border-white/20 font-semibold text-xs rounded-full active:scale-[0.98] transition-all shadow-lg cursor-pointer text-center"
                   >
                     {isSpotlightExpanded 
                       ? (language === "fr" ? "Masquer" : "Hide Details") 
@@ -817,7 +863,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
                       const dest = DESTINATIONS.find(d => d.id === "shantumbu-falls");
                       if (dest) handleSelectDirectDestination(dest);
                     }}
-                    className="flex-1 py-3 px-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs rounded-xl active:scale-[0.98] transition-all shadow-lg shadow-black/20 cursor-pointer text-center"
+                    className="flex-1 py-3 px-2 bg-brand-gold hover:bg-brand-gold-light text-brand-dark font-bold text-xs rounded-full active:scale-[0.98] transition-all shadow-lg shadow-black/20 cursor-pointer text-center"
                   >
                     {language === "fr" ? "Réserver" : "Book Now"}
                   </button>
@@ -1143,7 +1189,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
       </Suspense>
 
       {/* Side Toggle Buttons for Signature Tours and Spotify & Tour on the Right Side */}
-      <div className="fixed right-0 top-28 sm:top-32 z-45 flex flex-col gap-1 sm:gap-2 select-none">
+      <div id="side-toggle-buttons" className={`fixed right-0 top-28 sm:top-32 z-45 flex flex-col gap-1 sm:gap-2 select-none transition-all duration-500 ${showSideControls ? "opacity-100 translate-x-0" : "opacity-0 translate-x-12 pointer-events-none"}`}>
         <button
           onClick={() => setPackagesDrawerOpen(true)}
           className="bg-brand-dark/95 backdrop-blur-md text-brand-teal hover:text-white border-y border-l border-brand-teal/40 p-2 sm:py-4 sm:px-3 rounded-l-xl sm:rounded-l-2xl shadow-2xl flex flex-col items-center gap-1.5 sm:gap-2 transition-all duration-300 hover:pl-1 sm:hover:pl-0 hover:pr-4 px-2 sm:hover:pr-4.5 cursor-pointer"
@@ -1198,7 +1244,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
       </Suspense>
  
        {/* Floating Bottom Left Action Bubbles for Safari Advisor Chat & WhatsApp support */}
-       <div className="fixed bottom-6 left-6 z-40 flex flex-col gap-3.5 select-none sm:bottom-8 sm:left-8">
+       <div className={`fixed bottom-6 left-6 z-40 flex flex-col gap-3.5 select-none sm:bottom-8 sm:left-8 transition-all duration-500 ${isScrolling ? "opacity-0 -translate-x-12 pointer-events-none" : "opacity-100 translate-x-0"}`}>
          <button
            onClick={() => setChatbotOpen(true)}
            className="w-13 h-13 rounded-full bg-brand-dark/95 backdrop-blur-md text-brand-teal hover:text-white flex items-center justify-center shadow-3xl hover:shadow-brand-teal/20 transition-all duration-300 hover:scale-110 border border-brand-teal/40 cursor-pointer active:scale-95"
@@ -1230,7 +1276,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
        {isMusicActive && !spotifyDrawerOpen && (
          <div
            id="spotify-now-playing-pill"
-           className="fixed bottom-6 right-6 z-40 max-w-sm rounded-[20px] bg-[#0A2540]/95 border border-[#1DB954]/50 hover:border-[#1DB954] shadow-2xl p-3 flex items-center justify-between gap-4 text-white backdrop-blur-md select-none sm:bottom-8 sm:right-8 transition-all duration-300 hover:scale-105"
+           className={`fixed bottom-6 right-6 z-40 max-w-sm rounded-[20px] bg-[#0A2540]/95 border border-[#1DB954]/50 hover:border-[#1DB954] shadow-2xl p-3 flex items-center justify-between gap-4 text-white backdrop-blur-md select-none sm:bottom-8 sm:right-8 transition-all duration-500 hover:scale-105 ${showSideControls ? "opacity-100 translate-x-0" : "opacity-0 translate-x-12 pointer-events-none"}`}
          >
            <style>{`
              @keyframes musicBarStretch1 {
@@ -1293,7 +1339,7 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
 
       {/* Floating Center Back to Top Button */}
       <AnimatePresence>
-        {showScrollTop && (
+        {showScrollTop && !isScrolling && (
           <motion.button
             initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
             animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}

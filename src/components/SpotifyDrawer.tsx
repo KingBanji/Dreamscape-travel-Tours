@@ -139,6 +139,7 @@ export default function SpotifyDrawer({
       }}
     >
       <div
+        id="spotify-drawer-panel"
         ref={drawerRef}
         onMouseEnter={scrollSync.handleMouseEnter}
         onMouseLeave={scrollSync.handleMouseLeave}

@@ -99,6 +99,7 @@ export default function PackagesDrawer({
     >
       {/* Drawer box sliding */}
       <div 
+        id="packages-drawer-panel"
         ref={drawerRef}
         onMouseEnter={scrollSync.handleMouseEnter}
         onMouseLeave={scrollSync.handleMouseLeave}

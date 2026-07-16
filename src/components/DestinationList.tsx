@@ -467,12 +467,12 @@ export default function DestinationList({
                 {/* Card Cover */}
                 <div className="relative h-64 overflow-hidden z-0">
                   <img
-                    src="/images/boatcruise hero.png"
+                    src="/images/cruise.png"
                     alt="Boat cruise and chills kafue zambia"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out cursor-zoom-in"
                     onClick={(e) => {
                       e.stopPropagation();
-                      openLightbox("Boat cruise and chills kafue zambia", "/images/boatcruise hero.png", ["/images/boatcruise hero.png"]);
+                      openLightbox("Boat cruise and chills kafue zambia", "/images/cruise.png", ["/images/cruise.png"]);
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-brand-dark/10 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-90 pointer-events-none" />

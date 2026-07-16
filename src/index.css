@@ -400,12 +400,23 @@ img:not([class*="h-"]):not([class*="w-"]) {
   color: #fff;
 }
 
-/* Exclusive lightbox viewing mode: hide the Hero, Passport, Spotlight, and main Header */
+/* Exclusive lightbox viewing mode: hide the Hero, Passport, Spotlight, main Header, and any active side buttons/drawers */
 body.lightbox-active #home,
 body.lightbox-active #passport-club-section,
 body.lightbox-active #spotlight-section,
-body.lightbox-active #main-app-header {
+body.lightbox-active #main-app-header,
+body.lightbox-active #side-toggle-buttons,
+body.lightbox-active #spotify-now-playing-pill,
+body.lightbox-active #packages-drawer-panel,
+body.lightbox-active #spotify-drawer-panel {
   display: none !important;
+}
+
+body.lightbox-active #packages-drawer-backdrop,
+body.lightbox-active #spotify-drawer-backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 
