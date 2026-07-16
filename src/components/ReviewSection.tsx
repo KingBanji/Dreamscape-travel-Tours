@@ -225,7 +225,8 @@ export default function ReviewSection({ reviews, destinations, onAddReview }: Re
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
               <AnimatePresence mode="popLayout">
                 {filteredReviews.map((rev, index) => {
-                  const canDelete = user && (rev.userId === user.uid || user.email === 'luyandobanjilb@gmail.com');
+                  const isUserAdmin = user && (user.email === 'luyandobanjilb@gmail.com' || (user as any).isAdmin || (user as any).role === 'admin' || localStorage.getItem("dreamscape_is_admin") === "true");
+                  const canDelete = user && (rev.userId === user.uid || isUserAdmin);
                   return (
                     <motion.div
                       layout

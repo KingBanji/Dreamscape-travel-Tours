@@ -360,6 +360,28 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } catch {
           setMemberships([]);
         }
+
+        // Keep reviews synchronized in real-time from Firestore for guests/logged-out visitors too
+        if (isFirebaseEnabled && db) {
+          const reviewsPath = "reviews";
+          const reviewsQuery = collection(db, reviewsPath);
+
+          activeUnsubscribeReviews = onSnapshot(
+            reviewsQuery,
+            (snapshot) => {
+              const list: Review[] = [];
+              snapshot.forEach((docSnap) => {
+                list.push(docSnap.data() as Review);
+              });
+              const merged = [...list, ...MOCK_REVIEWS.filter(r => !list.some(l => l.id === r.id))];
+              setReviews(merged);
+              localStorage.setItem(REVIEWS_LOCAL_KEY, JSON.stringify(merged));
+            },
+            (error) => {
+              handleFirestoreError(error, OperationType.GET, reviewsPath);
+            }
+          );
+        }
       }
     });
 
@@ -612,7 +634,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       userId: user?.uid || "guest"
     };
 
-    if (isFirebaseEnabled && db && user) {
+    if (isFirebaseEnabled && db) {
       const docPath = `reviews/${newId}`;
       try {
         await setDoc(doc(db, "reviews", newId), pruneUndefined({

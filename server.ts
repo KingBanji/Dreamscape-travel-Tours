@@ -150,7 +150,60 @@ We arrange premium, fully guided VIP transfers, permits, royal tribal court perm
 
 TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make up any packages or pricing that are not listed above. Mention that bookings can be made directly in this applet by opening "Book Now" or clicking the WhatsApp shortcut for direct agent support with ${activeAgent}. Limit output size to keep responses compact and highly engaging.`;
 
-      // 1. If OpenAI key is present, prioritize gpt-4o-mini
+      // 1. Try Gemini first (Primary Path - requested by user for Gemini Intelligence with Google Search Grounding)
+      if (geminiKey) {
+        const geminiModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"];
+        let lastError = null;
+
+        for (const modelName of geminiModels) {
+          try {
+            console.log(`Attempting Gemini generation using model: ${modelName}`);
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: message,
+              config: {
+                systemInstruction: systemInstruction + `
+                
+CRITICAL GOOGLE SEARCH GROUNDING MANDATE:
+You have access to the Google Search tool. If the user's inquiry is "out of coordinates on the site" (meaning it is about something NOT explicitly covered in our DESTINATIONS, CORE TOUR PACKAGES, or local procedures listed above—such as general flights, weather forecasts, visa constraints for specific citizenships, health requirements, history of Zambia, surrounding countries, other tourist attractions in Africa, or any general knowledge), you MUST use the Google Search tool to retrieve accurate, real-time facts from Google.
+When you use search grounding:
+1. Ground your response in the retrieved Google search results.
+2. In your response, clearly list the Google Search grounding source links used (name and full URL) at the very bottom so the client can verify the external information. Format them as simple text: "Source: [Title] - [URL]".`,
+                temperature: 0.7,
+                tools: [{ googleSearch: {} }],
+              },
+            });
+
+            let reply = response.text || "I was unable to formulate a response at this moment. Let's try again shortly!";
+            
+            // Extract Search Grounding metadata and format nicely as text sources
+            const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingChunks && groundingMetadata.groundingChunks.length > 0) {
+              const sources: string[] = [];
+              groundingMetadata.groundingChunks.forEach((chunk: any) => {
+                if (chunk.web && chunk.web.uri) {
+                  const title = chunk.web.title || "Web Source";
+                  const uri = chunk.web.uri;
+                  if (!sources.some(s => s.includes(uri))) {
+                    sources.push(`• ${title}: ${uri}`);
+                  }
+                }
+              });
+              if (sources.length > 0) {
+                reply += `\n\n🛰️ *Real-time Info from Google Search:* \n${sources.slice(0, 3).join("\n")}`;
+              }
+            }
+
+            res.json({ reply });
+            return;
+          } catch (geminiError: any) {
+            console.warn(`[Handled Fallback] Gemini API model ${modelName} rate limit or error encountered:`, geminiError?.message || geminiError);
+            lastError = geminiError;
+          }
+        }
+      }
+
+      // 2. Fallback to OpenAI if Gemini Key is missing or failed
       if (openaiKey) {
         try {
           const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -183,49 +236,42 @@ TONE: Keep your answers elegant, scannable, and extremely welcoming. Do not make
           const reply = data.choices?.[0]?.message?.content || "I couldn't process this trail request.";
           res.json({ reply });
           return;
-        } catch (openaiError) {
-          console.error("OpenAI API error, falling back to Gemini if available:", openaiError);
-          if (!geminiKey) {
-            res.status(500).json({ reply: "OpenAI endpoint failure and no backup engine found. Please check credentials." });
-            return;
-          }
+        } catch (openaiError: any) {
+          console.warn("[Handled Fallback] OpenAI API error encountered:", openaiError?.message || openaiError);
         }
       }
 
-      // 2. Fallback to Gemini if Gemini Key is present (or as primary path if OpenAI is missing)
-      if (geminiKey) {
-        const geminiModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"];
-        let lastError = null;
+      // 3. Fallback to highly optimized Local Heuristic matching when both Gemini (429) and OpenAI fail
+      console.log("Triggering server-side Local Heuristic Safari Advisor fallback...");
+      const q = message.toLowerCase();
+      let fallbackReply = "";
 
-        for (const modelName of geminiModels) {
-          try {
-            console.log(`Attempting Gemini generation using model: ${modelName}`);
-            const response = await ai.models.generateContent({
-              model: modelName,
-              contents: message,
-              config: {
-                systemInstruction,
-                temperature: 0.7,
-              },
-            });
-
-            const reply = response.text || "I was unable to formulate a response at this moment. Let's try again shortly!";
-            res.json({ reply });
-            return;
-          } catch (geminiError: any) {
-            console.error(`Gemini API error with model ${modelName}:`, geminiError);
-            lastError = geminiError;
-          }
-        }
-
-        // If we reach here, all Gemini models failed
-        res.status(500).json({
-          reply: `The safari radio is currently staticky due to heavy network demand! (Error: ${lastError?.message || "Unavailable"}). Please retry in a few seconds or contact ${activeAgent} directly.`
-        });
-        return;
+      if (q.includes("shantumbu") || q.includes("falls")) {
+        fallbackReply = `🌊 *Shantumbu Falls Wilderness Trek & Camping (Lusaka, Zambia)*\n\n- *Highlights:* A short escape from the capital city offering pristine wilderness camping, scenic nature hiking trails, and fresh natural pools.\n- *Cost:* From $26 per night (approx. ZMW 700).\n- *Activity Level:* Moderate.\n\nWould you like to book a tour? Go to the "Book Now" section above!`;
+      } else if (q.includes("luangwa") || q.includes("safari") || q.includes("leopard")) {
+        fallbackReply = `🐆 *South Luangwa Wilderness Deep-Dive (Zambia)*\n\n- *Highlights:* Famous for pioneering walking safaris, legendary night predator game drives, and lush river valleys containing huge herds of elephants, hippos, and leopards.\n- *Cost:* From $580 per person.\n- *Activity Level:* Moderate.\n\nReady to reserve? Try using our interactive itinerary builder or contact us directly on WhatsApp!`;
+      } else if (q.includes("livingstone") || q.includes("victoria")) {
+        fallbackReply = `🌊 *Livingstone & Musi-O-Tunya Heritage (Zambia)*\n\n- *Highlights:* Iconic sunset Zambezi River cruises, dramatic helicopter flights over the Victoria Falls, and walking with endangered white rhinos.\n- *Cost:* From $450 per person.\n- *Duration:* 4 Days / 3 Nights.\n\nYou can book this packages directly on our page!`;
+      } else if (q.includes("zambezi") || q.includes("canoe")) {
+        fallbackReply = `🚣 *Lower Zambezi Riverine Canoe Safari (Zambia)*\n\n- *Highlights:* Drift quietly past sleeping bull elephants on the Zambezi, stay in beautiful riverside lodges, and enjoy thrilling tiger fishing.\n- *Cost:* From $650 per person.\n- *Activity Level:* Challenging.\n\nBook directly or customise this trip!`;
+      } else if (q.includes("kafue") || q.includes("hot spring") || q.includes("balloon")) {
+        fallbackReply = `🎈 *Kafue National Park & Hot Springs (Zambia)*\n\n- *Highlights:* Magnificent hot air balloon safaris above the Busanga Plains, vast wild territory, and relaxing at therapeutic natural geothermal hot springs.\n- *Cost:* From $580 per person.\n- *Activity Level:* Moderate.\n\nWe can't wait to guide you through Kafue!`;
+      } else if (q.includes("price") || q.includes("pricing") || q.includes("cost") || q.includes("package") || q.includes("packages") || q.includes("kwacha") || q.includes("money")) {
+        fallbackReply = `💰 *Dreamscape Tours Current Packages & Rates:*\n\n• **Shantumbu Falls Camping:** $26 / night (Approx. ZMW 700)\n• **Livingstone Victoria Falls Heritage:** $450 / person\n• **South Luangwa Safari:** $580 / person\n• **Kafue Wilderness Park:** $580 / person\n• **Lower Zambezi Canoe Safari:** $650 / person\n\n• *Payment Terms:* We support instant automated Airtel Money, MTN MoMo, and secure card transactions with real-time receipt generation!`;
+      } else if (q.includes("cancel") || q.includes("refund") || q.includes("reschedule") || q.includes("policy")) {
+        fallbackReply = `📅 *Cancellations and Rescheduling Policy:*\n\n- **Date Rescheduling:** 100% free with 0 penalty up to 30 days prior.\n- **Cancellation Refund:** Fully refundable if canceled 45 days or more prior. Cancellations made inside this window incur a 20% reservation fee.\n\nYou can request dates or cancellation right from the "My Trips" dashboard.`;
+      } else if (q.includes("visa") || q.includes("entry") || q.includes("health") || q.includes("vaccine") || q.includes("malaria")) {
+        fallbackReply = `🌍 *Entry & Travel Requirements:*\n\n- **Visas:** Visa-free for tourists from USA, UK, EU, Canada, GCC, and more.\n- **Health:** Yellow Fever vaccine certificates are required if entering from endemic zones. Malaria prophylaxis is strongly recommended.\n- **Currency:** Zambian Kwacha (ZMW). We provide full in-app live conversion!`;
+      } else if (q.includes("ceremony") || q.includes("nc'wala") || q.includes("umutomboko") || q.includes("makishi") || q.includes("festival")) {
+        fallbackReply = `🎭 *Traditional Cultural Ceremonies (Zambia)*\n\n- **Nc'wala (late Feb):** Ngoni warrior thanksgivings.\n- **Umutomboko (late July):** Lunda conquest sword-dancing.\n- **Shimunenga (Sept/Oct):** Cattle river-crossings.\n- **Likumbi Lya Mize (Aug):** Makishi masquerades.\n\nAll cultural itineraries are bespoke. Please contact ${activeAgent} via our WhatsApp shortcut to schedule!`;
+      } else if (q.includes("contact") || q.includes("whatsapp") || q.includes("agent") || q.includes("email") || q.includes("phone") || q.includes("support")) {
+        fallbackReply = `📞 *Get in Touch with Dreamscape Tours:*\n\n- **WhatsApp:** Use the quick-action chat button on the bottom right!\n- **Email:** support@dreamscape-zm.com / info@dreamscape-zm.com\n- **Phone:** +260 970 000000 / +260 760 000000\n\nActive agent **${activeAgent}** is ready to assist you!`;
+      } else {
+        fallbackReply = `🦁 *Welcome to Dreamscape Tours ZM!*\n\nThe safari radio is currently running under heavy network traffic, but I'm fully equipped to answer any local questions! Here is what we offer:\n\n- **Shantumbu Falls Wilderness:** Camping from $26 / night\n- **Victoria Falls & Livingstone:** Adventure from $450 / person\n- **South Luangwa Wildlife Safari:** Walking tours from $580 / person\n- **Traditional Ceremonies:** Nc'wala, Umutomboko, or Likumbi Lya Mize\n- **Free Rescheduling:** 100% free up to 30 days outstanding\n\n*Tip:* Click the **WhatsApp** float button to chat directly with active agent ${activeAgent} 24/7! What can I help you plan?`;
       }
 
-      res.status(500).json({ reply: "No AI services are currently available. Check configuration parameters." });
+      res.json({ reply: fallbackReply });
+      return;
     } catch (error: any) {
       console.error("AI API Error:", error);
       res.status(500).json({ 

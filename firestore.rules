@@ -74,9 +74,8 @@ service cloud.firestore {
       // Reviews are public, so allow read list/get
       allow read: if true;
 
-      allow create: if isSignedIn()
+      allow create: if ( (isSignedIn() && request.resource.data.userId == request.auth.uid) || request.resource.data.userId == "guest" )
         && isValidId(reviewId)
-        && request.resource.data.userId == request.auth.uid
         && request.resource.data.id == reviewId
         && request.resource.data.authorName is string
         && request.resource.data.authorLocation is string
@@ -85,9 +84,9 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.keys().hasAll(['id', 'userId', 'authorName', 'authorLocation', 'rating', 'text', 'date', 'avatarColor', 'verified', 'destinationId']);
 
-      // Reviews cannot be updated once published, but authors can delete them manually
+      // Reviews cannot be updated once published, but authors or admins can delete them
       allow update: if false;
-      allow delete: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
     // --- Media Assets Collection Rules ---

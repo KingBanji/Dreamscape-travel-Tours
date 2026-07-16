@@ -6,18 +6,11 @@ import { PLAYLISTS } from "./data/playlists";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import DestinationList from "./components/DestinationList";
-import InteractiveItineraryBuilder from "./components/InteractiveItineraryBuilder";
-import ReviewSection from "./components/ReviewSection";
-import FAQSection from "./components/FAQSection";
-import TeamSection from "./components/TeamSection";
-import ContactSection from "./components/ContactSection";
-import PromotionalVideoSection from "./components/PromotionalVideoSection";
 import Footer from "./components/Footer";
 import { Compass, X, Download, Award, FileText, CheckCircle2, ShieldCheck, Info, Flame, Users, Heart, Ship, Sunset, ArrowUp } from "lucide-react";
 import { useAuthAndData } from "./lib/FirebaseContext";
 import { useLanguage } from "./lib/LanguageContext";
 import { useCurrency } from "./lib/CurrencyContext";
-import MediaGalleryModal from "./components/MediaGalleryModal";
 // @ts-ignore
 import liquidGlassBg from "./assets/images/liquid_glass_bg_1780913358891.png";
 
@@ -37,6 +30,15 @@ const AuthModal = lazy(() => import("./components/AuthModal"));
 const AdminPortalPage = lazy(() => import("./components/AdminPortalPage"));
 const VideosPage = lazy(() => import("./components/VideosPage"));
 
+// Below-the-fold dynamic page sections
+const InteractiveItineraryBuilder = lazy(() => import("./components/InteractiveItineraryBuilder"));
+const ReviewSection = lazy(() => import("./components/ReviewSection"));
+const FAQSection = lazy(() => import("./components/FAQSection"));
+const TeamSection = lazy(() => import("./components/TeamSection"));
+const ContactSection = lazy(() => import("./components/ContactSection"));
+const PromotionalVideoSection = lazy(() => import("./components/PromotionalVideoSection"));
+const MediaGalleryModal = lazy(() => import("./components/MediaGalleryModal"));
+
 // Simple elegant loader skeleton for Suspense fallbacks
 function LazyLoader() {
   return (
@@ -45,6 +47,16 @@ function LazyLoader() {
         <div className="w-8 h-8 rounded-full border-2 border-brand-teal border-t-transparent animate-spin" />
         <span className="text-xs font-semibold tracking-wider text-slate-700 dark:text-slate-300">Loading...</span>
       </div>
+    </div>
+  );
+}
+
+// Low-profile shimmer skeleton section to prevent Layout Shifts (CLS) on slow connections
+function SectionSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-16 w-full animate-pulse select-none">
+      <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-lg w-1/4 mb-4" />
+      <div className="h-44 bg-slate-100 dark:bg-slate-900/60 rounded-3xl w-full border border-slate-200/20" />
     </div>
   );
 }
@@ -945,24 +957,32 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
         />
 
         {/* 3. BUILD YOUR OWN — custom itinerary planner */}
-        <InteractiveItineraryBuilder
-          destinations={DESTINATIONS}
-          preSelectedDestinationId={plannerDestinationId}
-          onBookCustomTour={handleLaunchCustomPlannerCheckout}
-        />
+        <Suspense fallback={<SectionSkeleton />}>
+          <InteractiveItineraryBuilder
+            destinations={DESTINATIONS}
+            preSelectedDestinationId={plannerDestinationId}
+            onBookCustomTour={handleLaunchCustomPlannerCheckout}
+          />
+        </Suspense>
 
 
         {/* 4. TRUST — reviews and FAQ merged into one reassurance zone */}
-        <ReviewSection
-          reviews={reviews}
-          destinations={DESTINATIONS}
-          onAddReview={handleAddNewReview}
-        />
+        <Suspense fallback={<SectionSkeleton />}>
+          <ReviewSection
+            reviews={reviews}
+            destinations={DESTINATIONS}
+            onAddReview={handleAddNewReview}
+          />
+        </Suspense>
 
         {/* 5. CONTACT + RESCHEDULE POLICY — close the sale */}
-        <PromotionalVideoSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <PromotionalVideoSection />
+        </Suspense>
 
-        <ContactSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <ContactSection />
+        </Suspense>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 w-full relative z-20">
           <div className="bg-brand-dark text-brand-sand rounded-3xl p-6 sm:p-8 md:p-10 border border-brand-teal/20 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
@@ -997,9 +1017,13 @@ Copyright © 2026 Dreamscape Tours Ltd. All Rights Reserved.
           </div>
         </div>
 
-        <TeamSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <TeamSection />
+        </Suspense>
 
-        <FAQSection faqs={FAQS} />
+        <Suspense fallback={<SectionSkeleton />}>
+          <FAQSection faqs={FAQS} />
+        </Suspense>
 
         {/* Custom Membership / Passport Club Welcoming Banner moved to the bottom as a beautiful landscape banner */}
         {!user && (

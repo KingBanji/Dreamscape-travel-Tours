@@ -3,9 +3,6 @@ import { MessageSquare, X, Send, User, ChevronRight, Check } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react";
 import { useScrollSync } from "../hooks/useScrollSync";
 import { useLanguage } from "../lib/LanguageContext";
-// @ts-ignore
-import directorImg from "../assets/images/luyando_banji_1779907072829.png";
-
 import { db, isFirebaseEnabled } from "../lib/firebase";
 import { collection, addDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { useAuthAndData } from "../lib/FirebaseContext";
@@ -33,7 +30,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       roleFr: "Fondateur & Directeur Principal",
       phone: "+260 975 222 136",
       cleanPhone: "260975222136",
-      image: directorImg,
+      image: "/images/Banji Luyando Co Founder & Director.jpeg",
     },
     {
       id: "kalila",
@@ -42,7 +39,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       roleFr: "Consultante en Voyage Principale",
       phone: "+260 571 139 345",
       cleanPhone: "260571139345",
-      image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&h=500&q=80",
+      image: "/images/Kalila Chella.png",
     },
     {
       id: "mizinga",
@@ -51,7 +48,7 @@ export default function FloatingWhatsApp({ isOpen, onClose }: FloatingWhatsAppPr
       roleFr: "Directrice des Opérations de Voyage",
       phone: "+260 973 331 843",
       cleanPhone: "260973331843",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&h=500&q=80",
+      image: "/images/Mizinga Cheelo manager.png",
     }
   ];
 
