@@ -36,12 +36,26 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
   const signupFormRef = useRef<HTMLFormElement>(null);
   const loginFormRef = useRef<HTMLFormElement>(null);
 
+  // Real-time client-side email validation states
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupEmailTouched, setSignupEmailTouched] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginEmailTouched, setLoginEmailTouched] = useState(false);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isSignupEmailValid = !signupEmail ? false : emailRegex.test(signupEmail);
+  const isLoginEmailValid = !loginEmail ? false : emailRegex.test(loginEmail);
+
   // Sync activeTab with initialTab when opening
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
       setShowSignupPassword(false);
       setShowLoginPassword(false);
+      setSignupEmail("");
+      setSignupEmailTouched(false);
+      setLoginEmail("");
+      setLoginEmailTouched(false);
     }
   }, [isOpen, initialTab]);
 
@@ -50,6 +64,10 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
     setFeedbackMsg(null);
     setShowSignupPassword(false);
     setShowLoginPassword(false);
+    setSignupEmail("");
+    setSignupEmailTouched(false);
+    setLoginEmail("");
+    setLoginEmailTouched(false);
   }, [activeTab]);
 
   // Bind exact signup event listener as specified by user
@@ -430,13 +448,41 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
                 disabled
               />
 
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                required
-                className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-brand-medium/30 border border-brand-teal/20 text-brand-sand placeholder-brand-sand/40 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-brand-gold transition-all"
-              />
+              <div className="space-y-1">
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email Address"
+                  required
+                  value={signupEmail}
+                  onChange={(e) => {
+                    setSignupEmail(e.target.value);
+                    setSignupEmailTouched(true);
+                  }}
+                  className={`w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-brand-medium/30 border text-brand-sand placeholder-brand-sand/40 rounded-xl text-xs sm:text-sm focus:outline-none transition-all ${
+                    signupEmailTouched && signupEmail.length > 0
+                      ? isSignupEmailValid
+                        ? "border-emerald-500/50 focus:border-emerald-400"
+                        : "border-red-500/50 focus:border-red-400"
+                      : "border-brand-teal/20 focus:border-brand-gold"
+                  }`}
+                />
+                {signupEmailTouched && signupEmail.length > 0 && (
+                  <div className="flex items-center gap-1.5 px-1.5 text-[10px]">
+                    {isSignupEmailValid ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {language === "fr" ? "Adresse e-mail valide" : "Valid email address"}
+                      </span>
+                    ) : (
+                      <span className="text-red-400 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {language === "fr" ? "Veuillez entrer un e-mail valide" : "Please enter a valid email"}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="relative">
                 <input
@@ -458,7 +504,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (signupEmailTouched && !isSignupEmailValid)}
                 className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] sm:text-xs transition-all cursor-pointer shadow-lg shadow-purple-900/10 min-h-[40px] sm:min-h-[44px] disabled:opacity-50 mt-1"
               >
                 {loading ? (language === "fr" ? "Inscription..." : "Signing Up...") : "Sign Up"}
@@ -471,17 +517,45 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
         {activeTab === "login" && (
           <form onSubmit={handleLoginSubmit} ref={loginFormRef} className="space-y-3 sm:space-y-4">
             {/* Email Field */}
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-sand/50">
-                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </span>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                required
-                className="w-full pl-10 pr-3.5 py-2.5 sm:pl-10 sm:pr-4 sm:py-3 bg-brand-medium/30 border border-brand-teal/20 text-brand-sand placeholder-brand-sand/40 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-brand-gold transition-all"
-              />
+            <div className="space-y-1">
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-sand/50">
+                  <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </span>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email Address"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => {
+                    setLoginEmail(e.target.value);
+                    setLoginEmailTouched(true);
+                  }}
+                  className={`w-full pl-10 pr-3.5 py-2.5 sm:pl-10 sm:pr-4 sm:py-3 bg-brand-medium/30 border text-brand-sand placeholder-brand-sand/40 rounded-xl text-xs sm:text-sm focus:outline-none transition-all ${
+                    loginEmailTouched && loginEmail.length > 0
+                      ? isLoginEmailValid
+                        ? "border-emerald-500/50 focus:border-emerald-400"
+                        : "border-red-500/50 focus:border-red-400"
+                      : "border-brand-teal/20 focus:border-brand-gold"
+                  }`}
+                />
+              </div>
+              {loginEmailTouched && loginEmail.length > 0 && (
+                <div className="flex items-center gap-1.5 px-1.5 text-[10px]">
+                  {isLoginEmailValid ? (
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      {language === "fr" ? "Adresse e-mail valide" : "Valid email address"}
+                    </span>
+                  ) : (
+                    <span className="text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {language === "fr" ? "Veuillez entrer un e-mail valide" : "Please enter a valid email"}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Password Field */}
@@ -518,8 +592,8 @@ export default function AuthModal({ isOpen, onClose, initialTab = "signup" }: Au
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-2.5 sm:py-3.5 bg-[#0ea5e9] text-black font-black font-sans text-xs sm:text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-lg shadow-sky-500/20 mt-1 sm:bg-gradient-to-r sm:from-brand-gold sm:to-brand-gold-light sm:text-brand-dark"
+              disabled={loading || (loginEmailTouched && !isLoginEmailValid)}
+              className="w-full py-2.5 sm:py-3.5 bg-[#0ea5e9] text-black font-black font-sans text-xs sm:text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-lg shadow-sky-500/20 mt-1 sm:bg-gradient-to-r sm:from-brand-gold sm:to-brand-gold-light sm:text-brand-dark disabled:opacity-50"
             >
               {loading ? (language === "fr" ? "Connexion..." : "Verifying...") : (language === "fr" ? "Log In" : "Log In")}
             </button>
